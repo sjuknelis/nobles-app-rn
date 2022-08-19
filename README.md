@@ -1,13 +1,13 @@
 # Nobles App React Native
 
 <div align="center">
-  <img src="screenshots/login.png" width="600" /><br />
-  <img src="screenshots/mainmenu.png" width="600" /><br />
-  <img src="screenshots/aboutme.png" width="600" /><br />
-  <img src="screenshots/athletics.png" width="600" /><br />
-  <img src="screenshots/directory.png" width="600" /><br />
-  <img src="screenshots/menu.png" width="600" /><br />
-  <img src="screenshots/reservations.png" width="600" /><br />
+  <img src="screenshots/login.png" height="600" /><br />
+  <img src="screenshots/mainmenu.png" height="600" /><br />
+  <img src="screenshots/aboutme.png" height="600" /><br />
+  <img src="screenshots/athletics.png" height="600" /><br />
+  <img src="screenshots/directory.png" height="600" /><br />
+  <img src="screenshots/menu.png" height="600" /><br />
+  <img src="screenshots/reservations.png" height="600" /><br />
 </div>
 
 ## How to run (I think)
