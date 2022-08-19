@@ -49,7 +49,7 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
       if ( carryState ) {
         setAboutData(carryState);
         setUserImage({
-          uri: `https://nobilis.nobles.edu/images_sitewide/photos/1${carryState.PeopleID}.jpeg`
+          uri: `https://nobilis.nobles.edu/images_sitewide/photos/${carryState.PeopleID}.jpeg`
         });
         return;
       }
@@ -67,7 +67,7 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
 
       setAboutData(data);
       setUserImage({
-        uri: `https://nobilis.nobles.edu/images_sitewide/photos/1${data.PeopleID}.jpeg`
+        uri: `https://nobilis.nobles.edu/images_sitewide/photos/${data.PeopleID}.jpeg`
       });
       setCarryState(data);
     };

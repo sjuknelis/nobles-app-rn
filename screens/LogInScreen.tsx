@@ -228,7 +228,7 @@ function EntryScreen({ setPhase,setPINValue,lastCopyTried,setLastCopyTried }) {
         </View>
         <TouchableOpacity style={{
           transform: [
-            {translateY: -insets.bottom - 50}
+            {translateY: -insets.bottom - 60}
           ]
         }} onPress={() => {
           Linking.openURL("https://mail.google.com/mail/mu/mp/710/#tl/search/Your%20pin%20for%20the%20Nobles%20app%20is%20here");

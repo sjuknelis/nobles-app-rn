@@ -88,7 +88,7 @@ export function MainNavigator({ setNavigator }) {
     ).start();
   },[slideAnim,open]);
 
-  const scaleAnim = useRef(new Animated.Value(.9)).current;
+  const scaleAnim = useRef(new Animated.Value(.85)).current;
   useEffect(() => {
     Animated.timing(
       scaleAnim,

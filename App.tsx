@@ -70,12 +70,14 @@ export default function App() {
   const isLoadingComplete = useCachedResources();
   if ( ! isLoadingComplete || ! fontsLoaded ) return null;
 
+  const bgColor = navigatorInUse == "main" ? (["rgb(25,61,119)","rgb(144,179,237)"][colorScheme]) : "white";
+  
   return (
     <ColorSchemeContext.Provider value={[colorScheme,setColorScheme]}>
       <ModalContext.Provider value={[modalData,setModalData]}>
         <FlyingAnimContext.Provider value={[flyingAnimData,setFlyingAnimData]}>
           <SafeAreaProvider style={{
-            backgroundColor: navigatorInUse == "main" ? (["rgb(25,61,119)","rgb(144,179,237)"][colorScheme]) : "white"
+            backgroundColor: bgColor
           }}>
             <SafeAreaView>
               { navigators[navigatorInUse] || null }
@@ -83,7 +85,7 @@ export default function App() {
             { true ? (<AboutMeFlyingAnimController />) : null }
             <ModalController />
           </SafeAreaProvider>
-          <StatusBar style={["light","dark"][colorScheme]} backgroundColor={["rgb(25,61,119)","rgb(144,179,237)"][colorScheme]} />
+          <StatusBar style={navigatorInUse == "main" ? ["light","dark"][colorScheme] : "dark"} backgroundColor={bgColor} />
         </FlyingAnimContext.Provider>
       </ModalContext.Provider>
     </ColorSchemeContext.Provider>
