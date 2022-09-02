@@ -117,7 +117,7 @@ export function ScheduleList({ selectedDay,providedPNO }) {
   } else {
     if ( ! errorResponse ) {
       return (
-        <LoadingItem />
+        <LoadingItem anim="schedule" />
       );
     } else {
       return (

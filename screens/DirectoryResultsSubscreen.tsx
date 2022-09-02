@@ -55,7 +55,7 @@ export function DirectoryResultsSubscreen({ setSubscreen,options,carryState,setC
     );
   } else {
     return (
-      <LoadingItem />
+      <LoadingItem anim="directory" />
     );
   }
 }

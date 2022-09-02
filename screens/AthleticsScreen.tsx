@@ -76,7 +76,7 @@ function UpcomingView() {
           maxToRenderPerBatch={30}
         />
       ) : (
-        <LoadingItem />
+        <LoadingItem anim="athletics" />
       ) }
     </View>
   );
@@ -188,7 +188,7 @@ function ResultsView() {
           )}
         />
       ) : (
-        <LoadingItem />
+        <LoadingItem anim="athletics" />
       ) }
     </View>
   );

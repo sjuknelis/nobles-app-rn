@@ -23,9 +23,9 @@ export default function MenuScreen({ openMenu }) {
     setMealInternal(value);
   }
   
-
   useEffect(() => {
     const fetchMenuData = async () => {
+      console.log("hi")
       let date = new Date();
       const lunchData = {};
       const dinnerData = {};
@@ -43,10 +43,8 @@ export default function MenuScreen({ openMenu }) {
       setMenu([lunchData,dinnerData]);
     };
 
-    if ( ! menu ) {
-      fetchMenuData()
-        .catch(console.error);
-    }
+    fetchMenuData()
+      .catch(console.error);
   },[]);
 
   const pad = n => n < 10 ? "0" + n : n;
@@ -111,7 +109,7 @@ export default function MenuScreen({ openMenu }) {
             </View>
           </ScrollView>
         ) : (
-          <LoadingItem />
+          <LoadingItem anim="menu" />
         )
       }
     </Container>

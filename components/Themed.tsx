@@ -5,6 +5,7 @@ import { getColors } from '../hooks/colorSchemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { getWindowHeight } from '../hooks/windowHeight';
+import Lottie from 'lottie-react-native';
 
 export const KEY_COLOR = "rgb(25,61,119)";
 
@@ -123,18 +124,31 @@ export function BigButton(props) {
 }
 
 export function LoadingItem(props) {
-  const {style,...otherProps} = props;
+  const {anim,style,...otherProps} = props;
+  const anims = {
+    athletics: require("../lottie/athletics.json"),
+    directory: require("../lottie/directory.json"),
+    menu: require("../lottie/menu.json"),
+    schedule: require("../lottie/schedule.json")
+  };
 
   return (
     <View style={[{
       flex: 1,
       alignItems: "center",
-      justifyContent: "center"
+      justifyContent: "center",
+      margin: anim ? 50 : 0
     },style]} {...otherProps}>
-      <Text style={{
-        fontSize: 35,
-        fontFamily: "EBGaramond_700Bold"
-      }}>Loading...</Text>
+      {
+        anim ? (
+          <Lottie source={anims[anim]} autoPlay loop />
+        ) : (
+          <Text style={{
+            fontSize: 35,
+            fontFamily: "EBGaramond_700Bold"
+          }}>Loading...</Text>
+        )
+      }
     </View>
   );
 }

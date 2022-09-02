@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { StyleSheet, Image, TouchableOpacity, FlatList, Animated, Dimensions, LayoutAnimation } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { Calendar, CalendarList, Agenda } from 'react-native-calendars';
 
-import { Text, View, Container, BigButton } from '../components/Themed';
+import { Text, View, Container, BigButton, LoadingItem, KEY_COLOR } from '../components/Themed';
 import { requestAPI } from '../hooks/requestAPI';
 import { ModalContext } from '../hooks/modalContext';
 import { SlideSelector } from '../components/SlideSelector';
@@ -11,32 +10,51 @@ import { getColors } from '../hooks/colorSchemeContext';
 
 export default function ReservationsScreen({ openMenu }) {
   const {fgColor,bgColor} = getColors();
-  const [reservations,setReservations] = useState([
-    {
-      type: "breakfast",
-      date: "2022-08-15"
-    },
-    {
-      type: "dinner",
-      date: "2022-08-16"
-    },
-  ]);
+  const [reservations,setReservations] = useState(null);
   const [modalData,setModalData] = useContext(ModalContext);
+
+  const fetchReservationData = async () => {
+    const reservationData = await requestAPI(`xmlMyReservations.php?username=sjuknelis24`,true);
+    setReservations(reservationData.children);
+  };
+  useEffect(() => {
+    fetchReservationData()
+      .catch(console.error);
+  },[]);
 
   const addReservation = () => {
     setModalData({
       open: true,
-      content: (<ReservationModal addReservations={(dates,meal) => {
-        setReservations(reservations.concat(dates.map(date => ({type: ["breakfast","dinner"][meal],date}))));
+      content: (<ReservationModal addReservations={async (dates,meal) => {
+        setReservations(null);
         setModalData({
           open: false
         });
+        for ( let date of dates ) {
+          await fetch(`https://nobilis.nobles.edu/webservices/reservedinner.php?username=sjuknelis24&mealtype=${["breakfast","dinner"][meal]}&date=${date}`);
+        }
+        fetchReservationData();
       }} />)
     });
   };
-  const removeReservation = index => {
-    setReservations(reservations.slice(0,index).concat(reservations.slice(index + 1)));
+  const removeReservation = async index => {
+    const reservation = reservations[index];
+    setReservations(null);
+    const date = reservation.getElementsByTagName("Date")[0].value;
+    const meal = reservation.getElementsByTagName("MealType")[0].value;
+    await fetch(`https://nobilis.nobles.edu/iosnoblesappweb/canceldinner.php?username=sjuknelis24&date=${date}&mealtype=${meal}`);
+    fetchReservationData();
   };
+  const removeAllReservations = async () => {
+    const copyReservations = reservations.map(item => item);
+    setReservations(null);
+    for ( const reservation of reservations ) {
+      const date = reservation.getElementsByTagName("Date")[0].value;
+      const meal = reservation.getElementsByTagName("MealType")[0].value;
+      await fetch(`https://nobilis.nobles.edu/iosnoblesappweb/canceldinner.php?username=sjuknelis24&date=${date}&mealtype=${meal}`);
+    }
+    fetchReservationData();
+  }
 
   return (
     <Container title="RESERVATIONS" menuButton={{
@@ -72,7 +90,7 @@ export default function ReservationsScreen({ openMenu }) {
           borderRadius: 8,
           alignItems: "center",
           justifyContent: "center"
-        }]} onPress={() => setReservations([])}>
+        }]} onPress={removeAllReservations}>
           <FontAwesome size={20} name="trash" color={fgColor} style={{
             paddingRight: 10
           }} />
@@ -80,7 +98,9 @@ export default function ReservationsScreen({ openMenu }) {
         </TouchableOpacity>
       </View>
     )}>
-      { reservations.length <= 0 ? (
+      { ! reservations ? (
+        <LoadingItem anim="menu" />
+      ) : (reservations.length <= 0 ? (
         <Text style={{
           marginTop: "75%",
           marginBottom: "75%",
@@ -94,7 +114,7 @@ export default function ReservationsScreen({ openMenu }) {
           renderItem={({item,index}) => <ReservationItem item={item} removeItem={() => removeReservation(index)} />}
           keyExtractor={(item,index) => JSON.stringify({item,index})}
         />
-      ) }
+      )) }
     </Container>
   );
 }
@@ -121,7 +141,7 @@ function ReservationItem({ item,removeItem }) {
         flex: 5,
         justifyContent: "center"
       }}>
-        <Text>{capitalize(item.type)} - {date.getMonth() + 1}/{date.getDate()}/{date.getFullYear()}</Text>
+        <Text>{ capitalize(item.getElementsByTagName("MealType")[0].value) } - { item.getElementsByTagName("Date")[0].value }</Text>
       </View>
       <View style={{
         flex: 1,
@@ -186,23 +206,7 @@ function ReservationModal({ addReservations }) {
         flex: 1,
         justifyContent: "space-around"
       }}>
-        <Calendar
-          markedDates={(() => {
-            let out = {};
-            for ( const date of toCreate ) {
-              out[date] = {selected: true,selectedColor: fgColor};
-            }
-            return out;
-          })()}
-          onDayPress={day => {
-            let toCreateCopy = [...toCreate];
-            if ( toCreate.indexOf(day.dateString) <= -1 ) toCreateCopy.push(day.dateString);
-            else toCreateCopy = toCreateCopy.filter(item => item != day.dateString);
-            setToCreate(toCreateCopy);
-          }}
-          minDate={`${new Date().getFullYear()}-${pad(new Date().getMonth() + 1)}-${pad(new Date().getDate())}`}
-          hideDayNames={true}
-        />
+        <Calendar updateSelectedDays={setToCreate} />
         <View style={{
         }}>
           <View style={{
@@ -229,6 +233,161 @@ function ReservationModal({ addReservations }) {
     </View>
   );
 }
+
+function Calendar({ updateSelectedDays }) {
+  const [selectedMonth,setSelectedMonth] = useState(null);
+  useEffect(() => {
+    const today = new Date();
+    today.setDate(1);
+    setSelectedMonth(today);
+  },[]);
+
+  const [selectedDays,setSelectedDays] = useState([]);
+  const daySelected = (number,isSelected) => {
+    const pad = n => n < 10 ? "0" + n : n;
+    const dateStr = `${pad(selectedMonth.getMonth() + 1)}/${pad(number)}/${selectedMonth.getFullYear()}`;
+    const copySelectedDays = selectedDays.map(item => item);
+    const index = selectedDays.indexOf(dateStr);
+    if ( index == -1 ) copySelectedDays.push(dateStr);
+    else copySelectedDays.splice(index,1);
+    console.log(copySelectedDays)
+    setSelectedDays(copySelectedDays);
+    updateSelectedDays(copySelectedDays);
+  };
+
+  if ( ! selectedMonth ) return null;
+
+  const offset = -selectedMonth.getDay() + 1;
+  let maxNumber = [31,28,31,30,31,30,31,31,30,31,30,31][selectedMonth.getMonth()];
+  if ( selectedMonth.getMonth() == 1 && selectedMonth.getFullYear() % 4 == 0 ) maxNumber++;
+  
+  const today = new Date();
+  let minSelectable = today.getDate();
+  today.setDate(1);
+  if ( today.getMonth() != selectedMonth.getMonth() || today.getFullYear() != selectedMonth.getFullYear() ) {
+    if ( today.getTime() < selectedMonth.getTime() ) minSelectable = 0;
+    else if ( today.getTime() > selectedMonth.getTime() ) minSelectable = 32;
+  }
+
+  const elements = [];
+  for ( let i = 0; i < 6; i++ ) {
+    elements.push((
+      <CalendarWeek start={offset + i * 7} maxNumber={maxNumber} minSelectable={minSelectable} daySelected={daySelected} />
+    ));
+  }
+
+  return (
+    <View>
+      <View style={styles.row}>
+        <TouchableOpacity style={{
+          flex: 1,
+          padding: 10,
+          alignItems: "center",
+          justifyContent: "center",
+        }} onPress={() => {
+          const copySelectedMonth = new Date(selectedMonth.getTime());
+          copySelectedMonth.setMonth(copySelectedMonth.getMonth() - 1);
+          setSelectedMonth(copySelectedMonth);
+          setSelectedDays([]);
+          updateSelectedDays([]);
+        }}>
+          <FontAwesome name="chevron-left" color={KEY_COLOR} size={20} />
+        </TouchableOpacity>
+        <View style={{
+          flex: 4,
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          <Text style={{
+            textAlign: "center"
+          }}>{ ["January","February","March","April","May","June","July","August","September","October","November","December"][selectedMonth.getMonth()] } { selectedMonth.getFullYear() }</Text>
+        </View>
+        <TouchableOpacity style={{
+          flex: 1,
+          margin: 5,
+          padding: 3,
+          alignItems: "center",
+          justifyContent: "center"
+        }} onPress={() => {
+          const copySelectedMonth = new Date(selectedMonth.getTime());
+          copySelectedMonth.setMonth(copySelectedMonth.getMonth() + 1);
+          setSelectedMonth(copySelectedMonth);
+          setSelectedDays([]);
+          updateSelectedDays([]);
+        }}>
+          <FontAwesome name="chevron-right" color={KEY_COLOR} size={20} />
+        </TouchableOpacity>
+      </View>
+      { elements }
+    </View>
+  );
+}
+
+function CalendarWeek({ start,maxNumber,minSelectable,daySelected }) {
+  if ( start > maxNumber ) return null;
+  const elements = [];
+  for ( let i = 0; i < 7; i++ ) {
+    elements.push((
+      <CalendarDay key={i} number={start + i} maxNumber={maxNumber} faded={start + i < minSelectable || i == 0 || i == 6} daySelected={daySelected} />
+    ));
+  }
+  return (
+    <View style={styles.row}>
+      { elements }
+    </View>
+  );
+}
+
+function CalendarDay({ number,maxNumber,faded,daySelected }) {
+  const [selected,setSelected] = useState(false);
+  const outOfBounds = number <= 0 || number > maxNumber;
+  const selectable = ! outOfBounds && ! faded;
+
+  useEffect(() => {
+    setSelected(false);
+  },[number]);
+
+  return (
+    <TouchableOpacity style={{
+      flex: 1
+    }} onPress={() => {
+      if ( ! selectable ) return;
+      daySelected(number,! selected);
+      setSelected(! selected);
+    }}>
+      <View style={{
+        margin: 5,
+        padding: 3,
+        borderRadius: 100,
+        backgroundColor: selected ? KEY_COLOR : "white"
+      }}>
+        <Text style={{
+          color: outOfBounds ^ selected ? "white" : KEY_COLOR,
+          textAlign: "center",
+          opacity: selectable ? 1 : .5
+        }}>{ number }</Text>
+      </View>
+    </TouchableOpacity>
+  )
+}
+
+/*<Calendar
+          markedDates={(() => {
+            let out = {};
+            for ( const date of toCreate ) {
+              out[date] = {selected: true,selectedColor: fgColor};
+            }
+            return out;
+          })()}
+          onDayPress={day => {
+            let toCreateCopy = [...toCreate];
+            if ( toCreate.indexOf(day.dateString) <= -1 ) toCreateCopy.push(day.dateString);
+            else toCreateCopy = toCreateCopy.filter(item => item != day.dateString);
+            setToCreate(toCreateCopy);
+          }}
+          minDate={`${new Date().getFullYear()}-${pad(new Date().getMonth() + 1)}-${pad(new Date().getDate())}`}
+          hideDayNames={true}
+        />*/
 
 const styles = StyleSheet.create({
   row: {
