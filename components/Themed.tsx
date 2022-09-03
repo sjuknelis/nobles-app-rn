@@ -96,7 +96,7 @@ export function Container({ children,title,titleSize,upperChildren,minUpperHeigh
 }
 
 export function BigButton(props) {
-  const {icon,text,inverted,onPress,style,...otherProps} = props;
+  const {icon,text,inverted,onPress,size,style,...otherProps} = props;
   const {fgColor,bgColor} = getColors(! inverted);
 
   return (
@@ -112,12 +112,13 @@ export function BigButton(props) {
       justifyContent: "center"
     },style]} onPress={onPress}>
       { icon ? (
-        <FontAwesome size={20} name={icon} color={fgColor} style={{
+        <FontAwesome size={size || 20} name={icon} color={fgColor} style={{
           paddingRight: 10
         }} />
       ) : null }
       <Text style={{
-        color: fgColor
+        color: fgColor,
+        fontSize: size
       }}>{ text }</Text>
     </TouchableOpacity>
   )

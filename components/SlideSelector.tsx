@@ -8,14 +8,14 @@ import { getColors } from '../hooks/colorSchemeContext';
 export function SlideSelector(props) {
   const {fgColor,bgColor} = getColors(props.inverted);
 
-  const [selected,setSelectedInternal] = useState(0);
+  const [selected,setSelectedInternal] = useState(props.preselect || 0);
   const [viewWidth,setViewWidth] = useState(0);
   const setSelected = value => {
     setSelectedInternal(value);
     props.setSelected(value);
-  }
+  };
 
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value((viewWidth / props.options.length) * selected)).current;
   useEffect(() => {
     Animated.timing(
       slideAnim,
@@ -26,6 +26,9 @@ export function SlideSelector(props) {
       }
     ).start();
   },[slideAnim,selected]);
+  useEffect(() => {
+    slideAnim.setValue((viewWidth / props.options.length) * selected);
+  },[viewWidth]);
 
   const tapAreas = props.options.map((item,index) => {
     return (

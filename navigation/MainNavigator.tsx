@@ -17,6 +17,7 @@ import HelpfulLinksScreen from '../screens/HelpfulLinksScreen';
 import { getColors } from '../hooks/colorSchemeContext';
 import { FlyingAnimContext } from '../hooks/flyingAnimContext';
 import { getWindowHeight } from '../hooks/windowHeight';
+import NameGameScreen from '../screens/NameGameScreen';
 
 export function MainNavigator({ setNavigator }) {
   const [open,setOpenInternal] = useState(true);
@@ -59,6 +60,11 @@ export function MainNavigator({ setNavigator }) {
       screen: (<HelpfulLinksScreen openMenu={() => setOpen(! open)} />),
       icon: "link",
       title: "Helpful Links"
+    },
+    namegame: {
+      screen: (<NameGameScreen openMenu={() => setOpen(! open)} />),
+      icon: "link",
+      title: "Name Game"
     },
     settings: {
       screen: (<SettingsScreen openMenu={() => setOpen(! open)} setNavigator={setNavigator} />),
