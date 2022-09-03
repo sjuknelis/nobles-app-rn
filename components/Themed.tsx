@@ -153,3 +153,53 @@ export function LoadingItem(props) {
     </View>
   );
 }
+
+export function CheckboxSet({ labels,setSelected }) {
+  const {fgColor,bgColor} = getColors();
+  const [selected,setSelectedInternal] = useState(new Array(labels.length).fill(true));
+  const toggle = index => {
+    const selectedCopy = selected.map(item => item);
+    selectedCopy[index] = ! selectedCopy[index];
+    setSelectedInternal(selectedCopy);
+    setSelected(selectedCopy);
+  }
+
+  const rows = [];
+  for ( let i = 0; i < labels.length; i += 3 ) {
+    rows.push((
+      <View key={i} style={{
+        flexDirection: "row",
+        width: "100%"
+      }}>
+        {
+          labels.slice(i,i + 3).map((item,j) => (
+            <TouchableOpacity style={{
+              flex: 1,
+              flexDirection: "row",
+              width: "100%",
+              alignItems: "center",
+              justifyContent: "center"
+            }} onPress={() => toggle(i + j)}>
+              <View style={{
+                width: 22,
+                height: 22,
+                borderRadius: 5,
+                borderColor: fgColor,
+                backgroundColor: selected[i + j] ? fgColor : "white",
+                borderWidth: 3,
+                marginRight: 10
+              }} />
+              <Text>{ item }</Text>
+            </TouchableOpacity>
+          ))
+        }
+      </View>
+    ));
+  }
+
+  return (
+    <View>
+      { rows }
+    </View>
+  )
+}

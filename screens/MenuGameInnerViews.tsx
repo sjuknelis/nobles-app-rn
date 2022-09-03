@@ -36,11 +36,13 @@ function GameContainer({ children,innerChildren }) {
   );
 }
 
-export function InGameView({ directory,setIDs,setInGame,setGameView }) {
+export function InGameView({ directory,learnMode,setIDs,setInGame,setGameView }) {
   const windowWidth = Dimensions.get("window").width;
   const windowHeight = getWindowHeight();
 
   const [correctIDs,setCorrectIDs] = useState([]);
+  const [totalQuestions,setTotalQuestions] = useState(0);
+  const usingTimer = ! learnMode || learnMode.mode == 0;
 
   const [rawTimer,setRawTimer] = useState(6000);
   const [timerAdj,setTimerAdj] = useState(0);
@@ -48,14 +50,14 @@ export function InGameView({ directory,setIDs,setInGame,setGameView }) {
   useEffect(() => {
     if ( directory ) {
       generateNewQuestion(directory);
-      const endTime = new Date().getTime() + 20000;
+      const endTime = new Date().getTime() + 60000;
       setInterval(() => {
         setRawTimer((endTime - new Date().getTime()) / 10);
       },10);
     }
   },[directory]);
   useEffect(() => {
-    if ( rawTimer - timerAdj <= 0 ) {
+    if ( usingTimer && rawTimer - timerAdj <= 0 ) {
       setIDs(correctIDs);
       setGameView("flying",correctIDs.length);
     }
@@ -63,51 +65,70 @@ export function InGameView({ directory,setIDs,setInGame,setGameView }) {
 
   const [choices,setChoices] = useState([]);
   const [correctIndex,setCorrectIndex] = useState(0);
+  const [chosen,setChosen] = useState(-1);
   const generateNewQuestion = directoryInUse => {
     const selectedIndices = [];
     for ( let i = 0; i < 4; i++ ){
       let index;
       do {
         index = Math.floor(Math.random() * directoryInUse.length);
-      } while ( selectedIndices.indexOf(index) > -1 );
+      } while (
+        selectedIndices.indexOf(index) > -1 &&
+        (! learnMode || learnMode.grades[directory[index].grade])
+      );
       selectedIndices.push(index);
     }
     setChoices(selectedIndices.map(index => directoryInUse[index]));
     setCorrectIndex(Math.floor(Math.random() * 4));
+    setChosen(-1);
   };
 
   const [score,setScore] = useState(0);
   const [barResetTimeout,setBarResetTimeout] = useState(-1);
-  const choicesItems = choices.map((item,index) => (
-    <View key={item.name} style={styles.row}>
-      <TouchableOpacity style={[styles.row,{
-        borderWidth: 1,
-        borderColor: "black",
-        padding: 7,
-        marginTop: 12,
-        marginLeft: 15,
-        width: windowWidth - 30,
-        borderRadius: 10,
-        justifyContent: "center"
-      }]} onPress={() => {
-        if ( index == correctIndex ) {
-          setBarColor("green");
-          setScore(score + 1);
-          setCorrectIDs(correctIDs.concat([choices[index].pno]));
-        } else {
-          setBarColor("red");
-          setTimerAdj(timerAdj + 200);
-        }
-        if ( barResetTimeout != -1 ) clearInterval(barResetTimeout);
-        setBarResetTimeout(setTimeout(() => {
-          setBarColor("black");
-        },2000));
-        generateNewQuestion(directory);
-      }}>
-        <Text style={styles.nunito}>{ item.name }</Text>
-      </TouchableOpacity>
-    </View>
-  ));
+  const choicesItems = choices.map((item,index) => {
+    let color = "black";
+    if ( learnMode && chosen != -1 ) {
+      if ( index == chosen ) color = "red";
+      if ( index == correctIndex ) color = "green";
+      if ( color == "black" ) color = "white";
+    }
+    return (
+      <View key={item.name} style={styles.row}>
+        <TouchableOpacity style={[styles.row,{
+          borderWidth: 1,
+          borderColor: color,
+          padding: 7,
+          marginTop: 12,
+          marginLeft: 15,
+          width: windowWidth - 30,
+          borderRadius: 10,
+          justifyContent: "center"
+        }]} onPress={() => {
+          if ( learnMode && chosen != -1 ) return;
+          if ( index == correctIndex ) {
+            setBarColor("green");
+            setScore(score + 1);
+            setCorrectIDs(correctIDs.concat([choices[index].pno]));
+          } else {
+            setBarColor("red");
+            setTimerAdj(timerAdj + 200);
+          }
+          setTotalQuestions(totalQuestions + 1);
+          setChosen(index);
+          if ( barResetTimeout != -1 ) clearInterval(barResetTimeout);
+          setBarResetTimeout(setTimeout(() => {
+            setBarColor("black");
+            if ( learnMode ) generateNewQuestion(directory);
+          },2000));
+          if ( ! learnMode ) generateNewQuestion(directory);
+        }}>
+          <Text style={[styles.nunito,{
+            color
+          }]}>{ item.name }</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  });
 
   return (
     <GameContainer>
@@ -127,7 +148,7 @@ export function InGameView({ directory,setIDs,setInGame,setGameView }) {
         }}>
           <Text style={[styles.nunitoBold,{
             color: barColor
-          }]}>{ ((rawTimer - timerAdj) / 100).toFixed(2) }</Text>
+          }]}>{ usingTimer ? (Math.max(rawTimer - timerAdj,0) / 100).toFixed(2) : `${correctIDs.length}/${totalQuestions}` }</Text>
         </View>
         <View style={{
           flex: 1,
@@ -136,7 +157,7 @@ export function InGameView({ directory,setIDs,setInGame,setGameView }) {
         }}>
           <Text style={[styles.nunitoBold,{
             color: barColor
-          }]}>{ score }</Text>
+          }]}>{ usingTimer ? score : "" }</Text>
         </View>
       </View>
       <Image
@@ -237,7 +258,7 @@ export function FlyingView({ ids,setGameView }) {
   );
 }
 
-export function EndingView({ setInGame,setMenu,setGameView }) {
+export function EndingView({ ids,highscore,setInGame,setMenu,setGameView }) {
   const windowWidth = Dimensions.get("window").width;
 
   return (
@@ -261,7 +282,7 @@ export function EndingView({ setInGame,setMenu,setGameView }) {
               fontSize: 45,
               paddingTop: 5,
               textAlign: "center"
-            }]}>9</Text>
+            }]}>{ ids.length }</Text>
             <Text style={[styles.row,styles.nunito,{
               textAlign: "center"
             }]}>Last round score</Text>
@@ -271,10 +292,10 @@ export function EndingView({ setInGame,setMenu,setGameView }) {
               fontSize: 45,
               paddingTop: 10,
               textAlign: "center"
-            }]}>9</Text>
+            }]}>{ highscore }</Text>
             <Text style={[styles.row,styles.nunito,{
               textAlign: "center"
-            }]}>Last round score</Text>
+            }]}>All time high</Text>
           </View>
         </View>
         <View style={styles.row}>
