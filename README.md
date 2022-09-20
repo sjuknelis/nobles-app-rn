@@ -8,6 +8,10 @@
   <img src="screenshots/directory.png" height="600" /><br />
   <img src="screenshots/menu.png" height="600" /><br />
   <img src="screenshots/reservations.png" height="600" /><br />
+  <img src="screenshots/ipad-main.png" height="600" /><br />
+  <img src="screenshots/ipad-portrait.png" height="600" /><br />
+  <img src="screenshots/ipad-landscape.png" height="600" /><br />
+  <img src="screenshots/mac.png" height="600" /><br />
 </div>
 
 ## How to run (I think)
