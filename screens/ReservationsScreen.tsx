@@ -34,6 +34,10 @@ export default function ReservationsScreen({ openMenu }) {
           await fetch(`https://nobilis.nobles.edu/webservices/reservedinner.php?username=sjuknelis24&mealtype=${["breakfast","dinner"][meal]}&date=${date}`);
         }
         fetchReservationData();
+      }} close={() => {
+        setModalData({
+          open: false
+        });
       }} />)
     });
   };
@@ -160,7 +164,7 @@ function ReservationItem({ item,removeItem }) {
 
 const PRICES = [4,6];
 
-function ReservationModal({ addReservations }) {
+function ReservationModal({ addReservations,close }) {
   const {fgColor,bgColor} = getColors();
   const [meal,setMeal] = useState(0);
   const [toCreate,setToCreate] = useState([]);
@@ -183,7 +187,7 @@ function ReservationModal({ addReservations }) {
             flex: 1,
             alignItems: "center",
             justifyContent: "center"
-          }}>
+          }} onPress={() => close()}>
             <FontAwesome size={20} name="chevron-left" color={bgColor} />
           </TouchableOpacity>
           <View style={{
@@ -204,6 +208,7 @@ function ReservationModal({ addReservations }) {
       </View>
       <View style={{
         flex: 1,
+        backgroundColor: bgColor,
         justifyContent: "space-around"
       }}>
         <Calendar updateSelectedDays={setToCreate} />
@@ -235,6 +240,7 @@ function ReservationModal({ addReservations }) {
 }
 
 function Calendar({ updateSelectedDays }) {
+  const {fgColor,bgColor} = getColors();
   const [selectedMonth,setSelectedMonth] = useState(null);
   useEffect(() => {
     const today = new Date();
@@ -283,7 +289,7 @@ function Calendar({ updateSelectedDays }) {
           flex: 1,
           padding: 10,
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }} onPress={() => {
           const copySelectedMonth = new Date(selectedMonth.getTime());
           copySelectedMonth.setMonth(copySelectedMonth.getMonth() - 1);
@@ -291,7 +297,7 @@ function Calendar({ updateSelectedDays }) {
           setSelectedDays([]);
           updateSelectedDays([]);
         }}>
-          <FontAwesome name="chevron-left" color={KEY_COLOR} size={20} />
+          <FontAwesome name="chevron-left" color={fgColor} size={20} />
         </TouchableOpacity>
         <View style={{
           flex: 4,
@@ -315,7 +321,7 @@ function Calendar({ updateSelectedDays }) {
           setSelectedDays([]);
           updateSelectedDays([]);
         }}>
-          <FontAwesome name="chevron-right" color={KEY_COLOR} size={20} />
+          <FontAwesome name="chevron-right" color={fgColor} size={20} />
         </TouchableOpacity>
       </View>
       { elements }
@@ -339,6 +345,7 @@ function CalendarWeek({ start,maxNumber,minSelectable,daySelected }) {
 }
 
 function CalendarDay({ number,maxNumber,faded,daySelected }) {
+  const {fgColor,bgColor} = getColors();
   const [selected,setSelected] = useState(false);
   const outOfBounds = number <= 0 || number > maxNumber;
   const selectable = ! outOfBounds && ! faded;
@@ -359,10 +366,10 @@ function CalendarDay({ number,maxNumber,faded,daySelected }) {
         margin: 5,
         padding: 3,
         borderRadius: 100,
-        backgroundColor: selected ? KEY_COLOR : "white"
+        backgroundColor: selected ? fgColor : bgColor
       }}>
         <Text style={{
-          color: outOfBounds ^ selected ? "white" : KEY_COLOR,
+          color: outOfBounds ^ selected ? bgColor : fgColor,
           textAlign: "center",
           opacity: selectable ? 1 : .5
         }}>{ number }</Text>

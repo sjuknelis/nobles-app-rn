@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
+import { StyleSheet, Image, TouchableOpacity, Animated, Dimensions, LayoutAnimation } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import Barcode from '../components/Barcode';
 
 import { Text, View, Container, KEY_COLOR } from '../components/Themed';
 import { SubscreenController } from '../components/SubscreenController';
-import { requestAPI, pno } from '../hooks/requestAPI';
+import { getCreds, requestAPI } from '../hooks/requestAPI';
 
 import FinancialSubscreen from './FinancialSubscreen';
 import CommunityServiceSubscreen from './CommunityServiceSubscreen';
@@ -36,7 +37,9 @@ export default function AboutMeScreen({ openMenu,navigation }) {
 
 function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
   const {fgColor,bgColor} = getColors();
+  const windowWidth = Dimensions.get("window").width;
   const [aboutData,setAboutData] = useState({});
+  const [pno,setPNO] = useState(1);
 
   const [flyingAnimData,setFlyingAnimData] = useContext(FlyingAnimContext);
   const setSubscreenAndFlyingAnim = (subscreen,text) => {
@@ -46,6 +49,9 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
 
   useEffect(() => {
     const fetchAboutData = async () => {
+      const creds = await getCreds();
+      setPNO(creds.pno);
+
       if ( carryState ) {
         setAboutData(carryState);
         setUserImage({
@@ -78,6 +84,20 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
 
   const [userImage,setUserImage] = useState(require("../assets/images/guest.png"));
 
+  const [barcodeOpen,setBarcodeOpenInternal] = useState(false);
+  const [barcodeHeight,setBarcodeHeight] = useState(0);
+  const setBarcodeOpen = value => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setBarcodeOpenInternal(value);
+    let barcodeHeightVal = barcodeHeight;
+    const interval = setInterval(() => {
+      if ( value ) barcodeHeightVal += 12;
+      else barcodeHeightVal -= 12;
+      setBarcodeHeight(barcodeHeightVal);
+      if ( barcodeHeightVal <= 0 || barcodeHeightVal >= 100 ) clearInterval(interval);
+    })
+  };
+
   const simulatedLabel = useRef();
   useEffect(() => {
     setTimeout(() => {
@@ -99,8 +119,8 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
         }}>
           <Image
             style={{
-              width: "100%",
-              aspectRatio: 640 / 800,
+              width: (windowWidth - 30) * (5 / 12),
+              height: (windowWidth - 30) * (5 / 12) * (800 / 640),
               borderRadius: 10
             }}
             source={userImage}
@@ -136,6 +156,19 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
         <BoxEntry icon="dollar" text="Financial" action={() => setSubscreenAndFlyingAnim("financial","Financial")} />
         <BoxEntry icon="heart" text="Community Service" action={() => setSubscreenAndFlyingAnim("commserve","Community Service")} />
         <BoxEntry icon="lock" text="Locker Combo" action={() => setSubscreenAndFlyingAnim("locker","Locker Combo")} />
+        <BoxEntry icon="id-card" text="Student ID Barcode" arrow={barcodeOpen ? "chevron-down" : "chevron-right"} content={(
+          <Animated.View style={[styles.row,{
+            padding: 0,
+            justifyContent: "center",
+            height: barcodeHeight,
+            overflow: "hidden"
+          }]}>
+            <Barcode
+              value={pno.toString()}
+              options={{ format: 'CODE128', background: 'white', width: 3, height: 75 }}
+            />
+          </Animated.View>
+        )} action={() => setBarcodeOpen(! barcodeOpen)} />
       </View>
       <View style={{
         position: "absolute",
@@ -161,7 +194,7 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
   );
 }
 
-function BoxEntry({ icon,text,action }) {
+function BoxEntry({ icon,text,arrow,content,action }) {
   const {fgColor,bgColor,semiShade} = getColors();
   const [flyingAnimData,setFlyingAnimData] = useContext(FlyingAnimContext);
   const label = useRef();
@@ -189,9 +222,10 @@ function BoxEntry({ icon,text,action }) {
           <Text style={{ fontSize: 25, color: flyingAnimData.aboutme.animateNow != text ? fgColor : bgColor }} textRef={label}>{ text }</Text>
         </View>
         <View style={styles.iconBox}>
-          <FontAwesome size={20} name="chevron-right" color={fgColor} />
+          <FontAwesome size={20} name={arrow || "chevron-right"} color={fgColor} />
         </View>
       </TouchableOpacity>
+      { content ? content : null }
     </View>
   )
 }

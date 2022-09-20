@@ -16,8 +16,9 @@ import { AboutMeFlyingAnimController } from './components/AboutMeFlyingAnimContr
 import { ModalContext } from './hooks/modalContext';
 import { ModalController } from './components/ModalController';
 import { getCreds } from './hooks/requestAPI';
-import { ColorSchemeContext, getInitColorScheme } from './hooks/colorSchemeContext';
+import { ColorSchemeContext, getInitColorScheme, SCHEMES } from './hooks/colorSchemeContext';
 import { Platform, UIManager } from 'react-native';
+import { FirebaseContext, setupFirebase } from './hooks/firebaseContext';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -42,6 +43,13 @@ export default function App() {
   },[]);
 
   const [colorScheme,setColorScheme] = useState(0);
+  const [firebaseData,setFirebaseData] = useState({
+    uid: null,
+    data: {}
+  });
+  useEffect(() => {
+    setupFirebase(firebaseData,setFirebaseData);
+  },[]);
   (async () => {
     setColorScheme(await getInitColorScheme());
   })();
@@ -70,23 +78,25 @@ export default function App() {
   const isLoadingComplete = useCachedResources();
   if ( ! isLoadingComplete || ! fontsLoaded ) return null;
 
-  const bgColor = navigatorInUse == "main" ? (["rgb(25,61,119)","rgb(144,179,237)"][colorScheme]) : "white";
+  const bgColor = navigatorInUse == "main" ? SCHEMES[colorScheme][0] : "white";
   
   return (
     <ColorSchemeContext.Provider value={[colorScheme,setColorScheme]}>
       <ModalContext.Provider value={[modalData,setModalData]}>
-        <FlyingAnimContext.Provider value={[flyingAnimData,setFlyingAnimData]}>
-          <SafeAreaProvider style={{
-            backgroundColor: bgColor
-          }}>
-            <SafeAreaView>
-              { navigators[navigatorInUse] || null }
-            </SafeAreaView>
-            { true ? (<AboutMeFlyingAnimController />) : null }
-            <ModalController />
-          </SafeAreaProvider>
-          <StatusBar style={navigatorInUse == "main" ? ["light","dark"][colorScheme] : "dark"} backgroundColor={bgColor} />
-        </FlyingAnimContext.Provider>
+        <FirebaseContext.Provider value={[firebaseData,setFirebaseData]}>
+          <FlyingAnimContext.Provider value={[flyingAnimData,setFlyingAnimData]}>
+            <SafeAreaProvider style={{
+              backgroundColor: bgColor
+            }}>
+              <SafeAreaView>
+                { navigators[navigatorInUse] || null }
+              </SafeAreaView>
+              { true ? (<AboutMeFlyingAnimController />) : null }
+              <ModalController />
+            </SafeAreaProvider>
+            <StatusBar style={navigatorInUse == "main" ? ["light","dark"][colorScheme] : "dark"} backgroundColor={bgColor} />
+          </FlyingAnimContext.Provider>
+        </FirebaseContext.Provider>
       </ModalContext.Provider>
     </ColorSchemeContext.Provider>
   );

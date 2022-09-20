@@ -1,85 +1,22 @@
 import { FontAwesome } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useContext, useEffect, useRef, useState } from "react";
-import { Animated, Dimensions, FlatList, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { Animated, Dimensions, FlatList, Image, LayoutAnimation, StyleSheet, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SlideSelector } from "../components/SlideSelector";
-import { BigButton, CheckboxSet, Container, Text, View } from "../components/Themed";
+import { BigButton, CheckboxSet, Container, LoadingItem, Text, View } from "../components/Themed";
 import { getColors } from "../hooks/colorSchemeContext";
 import { ModalContext } from "../hooks/modalContext";
 import { getCreds, requestAPI } from "../hooks/requestAPI";
 import { getWindowHeight } from "../hooks/windowHeight";
 import { EndingView, FlyingView, InGameView } from "./MenuGameInnerViews";
 
-export default function NameGameScreen({ openMenu }) {
-  const leaderboard = [
-    {
-      name: "Simon Juknelis",
-      pno: 240472,
-      score: 60
-    },
-    {
-      name: "A B",
-      pno: 240472,
-      score: 59
-    },
-    {
-      name: "C D",
-      pno: 240472,
-      score: 59
-    },
-    {
-      name: "E F",
-      pno: 240472,
-      score: 58
-    },
-    {
-      name: "G H",
-      pno: 240472,
-      score: 57
-    },{
-      name: "I J",
-      pno: 240472,
-      score: 56
-    },
-    {
-      name: "K L",
-      pno: 240472,
-      score: 56
-    },
-    {
-      name: "M N",
-      pno: 240472,
-      score: 55
-    },
-    {
-      name: "O P",
-      pno: 240472,
-      score: 54
-    },
-    {
-      name: "Q R",
-      pno: 240472,
-      score: 53
-    },
-    {
-      name: "S T",
-      pno: 240472,
-      score: 52
-    },
-    {
-      name: "U V",
-      pno: 240472,
-      score: 51
-    },
-    {
-      name: "W X",
-      pno: 240472,
-      score: 50
-    },
-  ];
+import "../hooks/firebaseContext";
+import { FirebaseContext, setLeaderboardScore } from "../hooks/firebaseContext";
 
+export default function NameGameScreen({ openMenu }) {
   const [stats,setStats] = useState({});
+  const [statsLoaded,setStatsLoaded] = useState(false);
   useEffect(() => {
     const fetchStats = async () => {
       let jsonValue;
@@ -89,16 +26,18 @@ export default function NameGameScreen({ openMenu }) {
         console.error(err);
         return;
       }
-      if ( jsonValue ) {
+      if ( jsonValue && false ) {
         setStats(JSON.parse(jsonValue));
       } else {
         const noDataObj = {
           highscore: 0,
+          highscoreGrade: 0,
           games: 0
         };
         setStats(noDataObj);
         await AsyncStorage.setItem("@gamestats",JSON.stringify(noDataObj));
       }
+      setStatsLoaded(true);
     };
     fetchStats()
       .catch(console.error);
@@ -120,22 +59,53 @@ export default function NameGameScreen({ openMenu }) {
       .catch(console.error);
   },[]);
 
+  const [aboutData,setAboutData] = useState({});
+  const [grade,setGrade] = useState(0);
+  useEffect(() => {
+    const fetchAboutData = async () => {
+      const data = await requestAPI("aboutme.php");
+      setAboutData(data);
+      let gradeVal = 35 - parseInt(data.UNID.slice(-2));
+      if ( ! (gradeVal >= 9 && gradeVal <= 12) ) gradeVal = 0;
+      setGrade(gradeVal);
+    };
+
+    fetchAboutData()
+      .catch(console.error);
+  },[]);
+
   const [ids,setIDs] = useState([]);
   const [learnMode,setLearnMode] = useState(false);
+  const [selectedGrade,setSelectedGrade] = useState(0);
 
   const [inGame,setInGameInternal] = useState(false);
   const setInGame = value => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setInGameInternal(value);
     if ( ! value ) setIDs([]);
   }
+  const [firebaseData,setFirebaseData] = useContext(FirebaseContext);
   const [menu,setMenu] = useState(1);
   const [gameView,setGameViewInternal] = useState("ending");
   const setGameView = (value,score) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setGameViewInternal(value);
     if ( value == "flying" && ! learnMode ) {
       const statsCopy = Object.assign({},stats);
       statsCopy.games++;
-      if ( score > statsCopy.highscore ) statsCopy.highscore = score;
+      let updateScore = false;
+      if ( selectedGrade == 0 ) {
+        if ( score > statsCopy.highscore ) {
+          statsCopy.highscore = score;
+          updateScore = true;
+        }
+      } else {
+        if ( score > statsCopy.highscoreGrade ) {
+          statsCopy.highscoreGrade = score;
+          updateScore = true;
+        }
+      }
+      setLeaderboardScore(firebaseData,selectedGrade,aboutData,score,updateScore);
       setStats(statsCopy);
 
       const storeStats = async () => {
@@ -147,23 +117,50 @@ export default function NameGameScreen({ openMenu }) {
   }
 
   const gameViews = {
-    ingame: (<InGameView directory={directory} learnMode={learnMode} setIDs={setIDs} setInGame={setInGame} setGameView={setGameView} />),
+    ingame: (<InGameView directory={directory} learnMode={learnMode} selectedGrade={selectedGrade} setIDs={setIDs} setInGame={setInGame} setGameView={setGameView} />),
     flying: (<FlyingView ids={ids} setGameView={setGameView} />),
     ending: (<EndingView ids={ids} highscore={stats.highscore || 0} setInGame={setInGame} setMenu={setMenu} setGameView={setGameView} />)
   };
 
+  const [leaderboardPath,setLeaderboardPath] = useState("");
+  const currentLeaderboard = Object.values(firebaseData.data[leaderboardPath] || {})
+    .sort((a,b) => b.s - a.s)
+    .slice(0,100);
+  const [inLeaderboard,setInLeaderboardInternal] = useState(false);
+  const setInLeaderboard = value => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setInLeaderboardInternal(value);
+  };
+  const leaderboardTitles = {
+    "leaderboards/main": "Schoolwide",
+    "leaderboards/7": "Grade 7",
+    "leaderboards/8": "Grade 8",
+    "leaderboards/9": "Grade 9",
+    "leaderboards/10": "Grade 10",
+    "leaderboards/11": "Grade 11",
+    "leaderboards/12": "Grade 12",
+    "leaderboards/old 2021-2022": "2021-2022 School Year"
+  };
+
+  const hasSchoolScore = firebaseData.data["leaderboards/main"] !== undefined && firebaseData.data["leaderboards/main"][firebaseData.uid] !== undefined;
+  const hasGradeScore = firebaseData.data[`leaderboards/${grade}`] !== undefined && firebaseData.data[`leaderboards/${grade}`][firebaseData.uid] !== undefined;
+
   const [modalData,setModalData] = useContext(ModalContext);
+  const {fgColor,bgColor,semiColor} = getColors();
+  const nunitoColor = {
+    color: semiColor
+  };
   const menus = [
     (
       <View style={{
         padding: 5
       }}>
-        <Text style={[styles.nunitoBold,styles.small]}>How to Play</Text>
-        <Text style={[styles.nunito,styles.small]}>Once the name game begins, you will see a picture of a student and 4 names. Guess the correct name of 1 point. The object of the game is to score the most points (complete shocker). If you are incorrect, 2 seconds will be subtracted from the timer. You only have 60 seconds, so think fast! The top 99 scores are shown in the leaderboard tab.</Text>
-        <Text style={[styles.nunitoBold,styles.small,{
+        <Text style={[styles.nunitoBold,styles.small,nunitoColor]}>How to Play</Text>
+        <Text style={[styles.nunito,styles.small,nunitoColor]}>Once the name game begins, you will see a picture of a student and 4 names. Guess the correct name of 1 point. The object of the game is to score the most points (complete shocker). If you are incorrect, 2 seconds will be subtracted from the timer. You only have 60 seconds, so think fast! The top 99 scores are shown in the leaderboard tab.</Text>
+        <Text style={[styles.nunitoBold,styles.small,nunitoColor,{
           marginTop: 10
         }]}>The Purpose</Text>
-        <Text style={[styles.nunito,styles.small]}>I made the name game so everyone could get to know each other's names, to add a fun component to the app, and because it was fun to code. I hope you enjoy it!</Text>
+        <Text style={[styles.nunito,styles.small,nunitoColor]}>I made the name game so everyone could get to know each other's names, to add a fun component to the app, and because it was fun to code. I hope you enjoy it!</Text>
       </View>
     ),
     (
@@ -171,28 +168,36 @@ export default function NameGameScreen({ openMenu }) {
         <View style={{
           padding: 5
         }}>
-          <Text style={[styles.nunitoBold,styles.small]}>Stats</Text>
-          <Text style={[styles.nunito,styles.small]}>My high score: { stats.highscore || 0 }</Text>
-          <Text style={[styles.nunito,styles.small]}>My games played: { stats.games || 0 }</Text>
-          <Text style={[styles.nunito,styles.small]}>Schoolwide correct guesses: 0</Text>
-          <Text style={[styles.nunito,styles.small]}>Schoolwide games played: 0</Text>
-          <Text style={[styles.nunito,styles.small]}>Schoolwide average per game: 0</Text>
+          <Text style={[styles.nunitoBold,styles.small,nunitoColor]}>Stats</Text>
+          <Text style={[styles.nunito,styles.small,nunitoColor]}>My high score: { hasSchoolScore ? firebaseData.data["leaderboards/main"][firebaseData.uid].s : 0 }</Text>
+          <Text style={[styles.nunito,styles.small,nunitoColor]}>My high score (grade): { hasGradeScore ? firebaseData.data[`leaderboards/${grade}`][firebaseData.uid].s : 0 }</Text>
+          <Text style={[styles.nunito,styles.small,nunitoColor]}>My games played: { stats.games || 0 }</Text>
+          <Text style={[styles.nunito,styles.small,nunitoColor]}>Schoolwide correct guesses: { firebaseData.data.global.total_score }</Text>
+          <Text style={[styles.nunito,styles.small,nunitoColor]}>Schoolwide games played: { firebaseData.data.global.games_played }</Text>
+          <Text style={[styles.nunito,styles.small,nunitoColor]}>Schoolwide average per game: { Math.floor(firebaseData.data.global.total_score / firebaseData.data.global.games_played) }</Text>
         </View>
-        <View style={styles.row}>
-          <BigButton style={{
-            flex: 1,
-            paddingTop: 60,
-            paddingBottom: 60
-          }} icon="gamepad" text="Ranked" size={30} onPress={() => {
+        <View style={[styles.row,{
+          marginBottom: -10
+        }]}>
+          <BigButton icon="gamepad" text="Main Game" size={25} onPress={() => {
             setLearnMode(null);
+            setSelectedGrade(0);
             setGameView("ingame");
             setInGame(true);
           }} />
-          <BigButton style={{
-            flex: 1,
-            paddingTop: 60,
-            paddingBottom: 60
-          }} icon="group" text="Learn" size={30} onPress={() => {
+        </View>
+        <View style={[styles.row,{
+          marginBottom: -10
+        }]}>
+          <BigButton icon="group" text="My Grade" size={25} onPress={() => {
+            setLearnMode(null);
+            setSelectedGrade(grade - 7);
+            setGameView("ingame");
+            setInGame(true);
+          }} />
+        </View>
+        <View style={styles.row}>
+          <BigButton icon="address-book" text="Learn" size={25} onPress={() => {
             setModalData({
               open: true,
               content: (<LearnModal start={options => {
@@ -212,46 +217,101 @@ export default function NameGameScreen({ openMenu }) {
         </View>
       </View>
     ),
-    (
-      <FlatList
-        data={leaderboard}
-        keyExtractor={item => item.name}
-        renderItem={({item,index}) => <LeaderboardItem item={item} index={index + 1} isEqual={index > 0 && item.score == leaderboard[index - 1].score} />}
-      />
+    inLeaderboard ? (
+      <View style={{
+        backgroundColor: fgColor,
+        margin: -5,
+        padding: 5
+      }}>
+        <TouchableOpacity key="a" style={[styles.row,{
+          paddingTop: 10,
+          paddingBottom: 10,
+          paddingLeft: 5,
+          paddingRight: 5,
+          marginTop: -10,
+          alignItems: "center"
+        }]} onPress={() => {
+          setInLeaderboard(false);
+        }}>
+          <FontAwesome name="chevron-left" color={bgColor} size={20} />
+          <Text style={{
+            color: bgColor,
+            fontFamily: "EBGaramond_700Bold",
+            paddingLeft: 10
+          }}>{ leaderboardTitles[leaderboardPath] }</Text>
+        </TouchableOpacity>
+        <FlatList
+          data={currentLeaderboard}
+          keyExtractor={item => item.i}
+          renderItem={({item,index}) => <LeaderboardItem item={item} index={index + 1} isEqual={index > 0 && item.s == currentLeaderboard[index - 1].s} showImage={leaderboardPath != "leaderboards/old 2021-2022"} />}
+          ListFooterComponent={(
+            <View style={{
+              height: 50
+            }} />
+          )}
+        />
+      </View>
+    ) : (
+      <View key="b" style={{
+        margin: -5,
+        padding: 5
+      }}>
+        <LeaderboardButton text="Schoolwide" onPress={() => {
+          setLeaderboardPath("leaderboards/main");
+          setInLeaderboard(true);
+        }} />
+        { grade != 0 ? (
+          <LeaderboardButton text={`Grade ${grade}`} onPress={() => {
+            setLeaderboardPath(`leaderboards/${grade}`);
+            setInLeaderboard(true);
+          }} />
+        ) : null }
+        <LeaderboardButton text="2021-2022 School Year" onPress={() => {
+          setLeaderboardPath("leaderboards/old 2021-2022");
+          setInLeaderboard(true);
+        }} />
+      </View>
     )
   ];
 
-  if ( inGame ) {
-    return gameViews[gameView];
-  } else {
-    return (
-      <Container title="NAME GAME" menuButton={{
-        icon: "bars",
-        action: openMenu
-      }} upperChildren={(
-        <View style={[styles.row,{
-          paddingTop: 10,
-          paddingBottom: 10,
-          paddingLeft: 10,
-          paddingRight: 10
-        }]}>
-          <View style={{
-            flex: 4
-          }}>
-            <SlideSelector options={["Rules","Play","Leaderboard"]} setSelected={setMenu} inverted={true} preselect={1} />
-          </View>
-        </View>
-      )}>
-        { menus[menu] }
-      </Container>
-    );
-  }
+  return (
+    <View style={{
+      backgroundColor: "white"
+    }}>
+      {
+        inGame ? gameViews[gameView] : (
+          <Container title="NAME GAME" menuButton={{
+            icon: "bars",
+            action: openMenu
+          }} upperChildren={(
+            <View style={[styles.row,{
+              paddingTop: 10,
+              paddingBottom: 10,
+              paddingLeft: 10,
+              paddingRight: 10
+            }]}>
+              <View style={{
+                flex: 4
+              }}>
+                <SlideSelector options={["Rules","Play","Leaderboard"]} setSelected={setMenu} inverted={true} preselect={menu} />
+              </View>
+            </View>
+          )}>
+            { statsLoaded && directory && firebaseData.data["leaderboards/main"] ? menus[menu] : (
+              <LoadingItem anim="namegame" />
+            ) }
+          </Container>
+        )
+      }
+    </View>
+  );
 }
 
-function LeaderboardItem({ item,index,isEqual }) {
+function LeaderboardItem({ item,index,isEqual,showImage }) {
+  const {fgColor,bgColor,semiColor} = getColors();
+
   const stylePlace = () => {
-    let color = "black";
-    if ( index <= 10 ) color = "green";
+    let color = bgColor;
     if ( index == 3 ) color = "brown";
     if ( index == 2 ) color = "rgb(192,192,192)";
     if ( index == 1 ) color = "rgb(206,174,78)";
@@ -274,25 +334,27 @@ function LeaderboardItem({ item,index,isEqual }) {
       }}>
         <Text style={[styles.nunito,stylePlace()]}>{ index }</Text>
       </View>
-      <Image
-        style={{
-          flex: 1,
-          aspectRatio: 1,
-          borderRadius: 1000
-        }}
-        source={{
-          uri: `https://nobilis.nobles.edu/images_sitewide/photos/${item.pno}.jpeg`
-        }}
-      />
+      { showImage ? (
+        <Image
+          style={{
+            flex: 1,
+            aspectRatio: 1,
+            borderRadius: 1000
+          }}
+          source={{
+            uri: `https://nobilis.nobles.edu/images_sitewide/photos/${item.i}.jpeg`
+          }}
+        />
+      ) : null }
       <View style={{
         flex: 5,
         justifyContent: "center",
         marginLeft: 15
       }}>
         <Text style={{
-          fontFamily: "Nunito_700Bold",
-          color: "black"
-        }}>{ item.name }</Text>
+          color: bgColor,
+          fontFamily: "Nunito_700Bold"
+        }}>{ item.n }</Text>
       </View>
       <View style={{
         flex: 1,
@@ -300,9 +362,40 @@ function LeaderboardItem({ item,index,isEqual }) {
         justifyContent: "center",
         marginRight: 5
       }}>
-        <Text style={styles.nunito}>{ item.score }</Text>
+        <Text style={[styles.nunito,{
+          color: bgColor
+        }]}>{ item.s }</Text>
       </View>
     </View>
+  );
+}
+
+function LeaderboardButton({ text,onPress }) {
+  const windowWidth = Dimensions.get("window").width;
+  const {fgColor,bgColor} = getColors();
+
+  return (
+    <TouchableOpacity style={[styles.row,{
+      backgroundColor: fgColor,
+      borderRadius: 10,
+      margin: 5,
+      width: windowWidth - 20
+    }]} onPress={onPress}>
+      <Text style={{
+        flex: 3,
+        color: bgColor,
+        padding: 8,
+        fontFamily: "EBGaramond_700Bold"
+      }}>{ text }</Text>
+      <View style={{
+        flex: 1,
+        alignItems: "flex-end",
+        justifyContent: "center",
+        paddingRight: 10
+      }}>
+        <FontAwesome name="chevron-right" color={bgColor} size={20} />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -328,9 +421,7 @@ function LearnModal({ start,close }) {
             flex: 1,
             alignItems: "center",
             justifyContent: "center"
-          }} onPress={() => {
-            close();
-          }}>
+          }} onPress={() => close()}>
             <FontAwesome size={20} name="chevron-left" color={bgColor} />
           </TouchableOpacity>
           <View style={{
@@ -351,7 +442,10 @@ function LearnModal({ start,close }) {
       <View style={{
         flex: 1,
         justifyContent: "space-around",
-        padding: 5
+        padding: 5,
+        backgroundColor: bgColor,
+        borderBottomLeftRadius: 7,
+        borderBottomRightRadius: 7
       }}>
         <Text style={{
           marginBottom: 10

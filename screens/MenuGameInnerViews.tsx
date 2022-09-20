@@ -3,17 +3,19 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, View } from "../components/Themed";
+import { getColors } from "../hooks/colorSchemeContext";
 import { getCreds, requestAPI } from "../hooks/requestAPI";
 import { getWindowHeight } from "../hooks/windowHeight";
 
 function GameContainer({ children,innerChildren }) {
+  const {fgColor,bgColor} = getColors();
   const windowHeight = getWindowHeight();
   const insets = useSafeAreaInsets();
 
   return (
     <View style={{
       height: windowHeight,
-      backgroundColor: "white",
+      backgroundColor: bgColor,
       zIndex: 10,
       paddingTop: insets.top,
       transform: [
@@ -22,12 +24,12 @@ function GameContainer({ children,innerChildren }) {
     }}>
       <View style={{
         flex: 1,
+        backgroundColor: bgColor,
         borderTopLeftRadius: 15,
         borderTopRightRadius: 15,
         borderBottomLeftRadius: Platform.OS == "ios" ? 15 : 0,
         borderBottomRightRadius: Platform.OS == "ios" ? 15 : 0,
-        marginTop: 10,
-        backgroundColor: "white"
+        marginTop: 10
       }}>
         { children }
       </View>
@@ -36,7 +38,8 @@ function GameContainer({ children,innerChildren }) {
   );
 }
 
-export function InGameView({ directory,learnMode,setIDs,setInGame,setGameView }) {
+export function InGameView({ directory,learnMode,selectedGrade,setIDs,setInGame,setGameView }) {
+  const {fgColor,bgColor,semiColor} = getColors();
   const windowWidth = Dimensions.get("window").width;
   const windowHeight = getWindowHeight();
 
@@ -46,14 +49,14 @@ export function InGameView({ directory,learnMode,setIDs,setInGame,setGameView })
 
   const [rawTimer,setRawTimer] = useState(6000);
   const [timerAdj,setTimerAdj] = useState(0);
-  const [barColor,setBarColor] = useState("black");
+  const [barColor,setBarColor] = useState(semiColor);
   useEffect(() => {
     if ( directory ) {
       generateNewQuestion(directory);
       const endTime = new Date().getTime() + 60000;
       setInterval(() => {
         setRawTimer((endTime - new Date().getTime()) / 10);
-      },10);
+      },1000);
     }
   },[directory]);
   useEffect(() => {
@@ -68,13 +71,14 @@ export function InGameView({ directory,learnMode,setIDs,setInGame,setGameView })
   const [chosen,setChosen] = useState(-1);
   const generateNewQuestion = directoryInUse => {
     const selectedIndices = [];
-    for ( let i = 0; i < 4; i++ ){
+    for ( let i = 0; i < 4; i++ ) {
       let index;
       do {
         index = Math.floor(Math.random() * directoryInUse.length);
       } while (
-        selectedIndices.indexOf(index) > -1 &&
-        (! learnMode || learnMode.grades[directory[index].grade])
+        selectedIndices.indexOf(index) > -1 ||
+        (learnMode && ! learnMode.grades[directory[index].gradeIndex]) ||
+        (! learnMode && selectedGrade != 0 && selectedGrade != directory[index].gradeIndex)
       );
       selectedIndices.push(index);
     }
@@ -86,11 +90,11 @@ export function InGameView({ directory,learnMode,setIDs,setInGame,setGameView })
   const [score,setScore] = useState(0);
   const [barResetTimeout,setBarResetTimeout] = useState(-1);
   const choicesItems = choices.map((item,index) => {
-    let color = "black";
+    let color = semiColor;
     if ( learnMode && chosen != -1 ) {
       if ( index == chosen ) color = "red";
       if ( index == correctIndex ) color = "green";
-      if ( color == "black" ) color = "white";
+      if ( color == semiColor ) color = bgColor;
     }
     return (
       <View key={item.name} style={styles.row}>
@@ -98,7 +102,7 @@ export function InGameView({ directory,learnMode,setIDs,setInGame,setGameView })
           borderWidth: 1,
           borderColor: color,
           padding: 7,
-          marginTop: 12,
+          marginBottom: 12,
           marginLeft: 15,
           width: windowWidth - 30,
           borderRadius: 10,
@@ -117,7 +121,7 @@ export function InGameView({ directory,learnMode,setIDs,setInGame,setGameView })
           setChosen(index);
           if ( barResetTimeout != -1 ) clearInterval(barResetTimeout);
           setBarResetTimeout(setTimeout(() => {
-            setBarColor("black");
+            setBarColor(semiColor);
             if ( learnMode ) generateNewQuestion(directory);
           },2000));
           if ( ! learnMode ) generateNewQuestion(directory);
@@ -133,7 +137,8 @@ export function InGameView({ directory,learnMode,setIDs,setInGame,setGameView })
   return (
     <GameContainer>
       <View style={[styles.row,{
-        paddingBottom: 15
+        paddingBottom: 15,
+        alignItems: "space-between",
       }]}>
         <TouchableOpacity style={{
           flex: 1,
@@ -148,7 +153,7 @@ export function InGameView({ directory,learnMode,setIDs,setInGame,setGameView })
         }}>
           <Text style={[styles.nunitoBold,{
             color: barColor
-          }]}>{ usingTimer ? (Math.max(rawTimer - timerAdj,0) / 100).toFixed(2) : `${correctIDs.length}/${totalQuestions}` }</Text>
+          }]}>{ usingTimer ? (Math.max(rawTimer - timerAdj,0) / 100).toFixed(0) : `${correctIDs.length}/${totalQuestions}` }</Text>
         </View>
         <View style={{
           flex: 1,
@@ -160,21 +165,30 @@ export function InGameView({ directory,learnMode,setIDs,setInGame,setGameView })
           }]}>{ usingTimer ? score : "" }</Text>
         </View>
       </View>
-      <Image
-        style={{
-          width: "100%",
-          aspectRatio: 640 / 800
-        }}
-        source={{
-          uri: choices.length > 0 ? `https://nobilis.nobles.edu/images_sitewide/photos/${choices[correctIndex].pno}.jpeg` : ""
-        }}
-      />
+      <View style={{
+        flex: 1,
+        marginBottom: 12,
+        alignItems: "center"
+      }}>
+        <Image
+          style={{
+            flex: 1,
+            aspectRatio: 640 / 800,
+            marginLeft: "100%",
+            marginRight: "100%"
+          }}
+          source={{
+            uri: choices.length > 0 ? `https://nobilis.nobles.edu/images_sitewide/photos/${choices[correctIndex].pno}.jpeg` : ""
+          }}
+        />
+      </View>
       { choicesItems }
     </GameContainer>
   );
 }
 
 export function FlyingView({ ids,setGameView }) {
+  const {fgColor,bgColor,semiColor} = getColors();
   const windowWidth = Dimensions.get("window").width;
   const windowHeight = getWindowHeight();
 
@@ -251,7 +265,8 @@ export function FlyingView({ ids,setGameView }) {
         justifyContent: "center"
       }}>
         <Text style={[styles.nunito,{
-          fontSize: 45
+          fontSize: 45,
+          color: semiColor
         }]}>{ ids.length }</Text>
       </View>
     </GameContainer>
@@ -259,6 +274,13 @@ export function FlyingView({ ids,setGameView }) {
 }
 
 export function EndingView({ ids,highscore,setInGame,setMenu,setGameView }) {
+  const {fgColor,bgColor,semiColor,semiShade} = getColors();
+  const nunitoDefault = {
+    color: semiColor
+  };
+  const infoBoxDefault = {
+    backgroundColor: semiShade == "gray" ? "lightgray" : "gray"
+  }
   const windowWidth = Dimensions.get("window").width;
 
   return (
@@ -272,48 +294,48 @@ export function EndingView({ ids,highscore,setInGame,setMenu,setGameView }) {
         <View style={[styles.row,{
           justifyContent: "center"
         }]}>
-          <Text style={[styles.nunitoBold,{
-            fontSize: 45,
+          <Text style={[styles.nunitoBold,nunitoDefault,{
+            fontSize: 45
           }]}>Well done!</Text>
         </View>
         <View style={styles.row}>
-          <View style={styles.infoBox}>
-            <Text style={[styles.row,styles.nunitoBold,{
+          <View style={[styles.infoBox,infoBoxDefault]}>
+            <Text style={[styles.row,styles.nunitoBold,nunitoDefault,{
               fontSize: 45,
               paddingTop: 5,
               textAlign: "center"
             }]}>{ ids.length }</Text>
-            <Text style={[styles.row,styles.nunito,{
+            <Text style={[styles.row,styles.nunito,nunitoDefault,{
               textAlign: "center"
             }]}>Last round score</Text>
           </View>
-          <View style={styles.infoBox}>
-            <Text style={[styles.row,styles.nunitoBold,{
+          <View style={[styles.infoBox,infoBoxDefault]}>
+            <Text style={[styles.row,styles.nunitoBold,nunitoDefault,{
               fontSize: 45,
               paddingTop: 10,
               textAlign: "center"
             }]}>{ highscore }</Text>
-            <Text style={[styles.row,styles.nunito,{
+            <Text style={[styles.row,styles.nunito,nunitoDefault,{
               textAlign: "center"
             }]}>All time high</Text>
           </View>
         </View>
         <View style={styles.row}>
-          <TouchableOpacity style={styles.infoBox} onPress={() => {
+          <TouchableOpacity style={[styles.infoBox,infoBoxDefault]} onPress={() => {
             setInGame(false);
           }}>
-            <Text style={styles.nunito}>Exit</Text>
+            <Text style={[styles.nunito,nunitoDefault]}>Exit</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.infoBox} onPress={() => {
+          <TouchableOpacity style={[styles.infoBox,infoBoxDefault]} onPress={() => {
             setGameView("ingame");
           }}>
-            <Text style={styles.nunito}>Play Again</Text>
+            <Text style={[styles.nunito,nunitoDefault]} adjustsFontSizeToFit={true} numberOfLines={1}>Play Again</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.infoBox} onPress={() => {
+          <TouchableOpacity style={[styles.infoBox,infoBoxDefault]} onPress={() => {
             setMenu(2);
             setInGame(false);
           }}>
-            <Text style={styles.nunito} adjustsFontSizeToFit={true} numberOfLines={1}>Leaderboard</Text>
+            <Text style={[styles.nunito,nunitoDefault]} adjustsFontSizeToFit={true} numberOfLines={1}>Leaderboard</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -330,18 +352,15 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 5,
     padding: 5,
-    backgroundColor: "lightgray",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 15
   },
   nunito: {
-    fontFamily: "Nunito_400Regular",
-    color: "black"
+    fontFamily: "Nunito_400Regular"
   },
   nunitoBold: {
     fontFamily: "Nunito_700Bold",
-    fontSize: 25,
-    color: "black"
+    fontSize: 25
   }
 });

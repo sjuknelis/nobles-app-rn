@@ -45,12 +45,14 @@ export function Container({ children,title,titleSize,upperChildren,minUpperHeigh
       <DefaultView style={{
         flexDirection: "row",
         width: "100%",
-        height: minUpperHeight || null
+        height: minUpperHeight || null,
+        zIndex: 10
       }}>
         <TouchableOpacity style={{
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
+          zIndex: 90
         }} onPress={(menuButton || {action: () => {}}).action}>
           <FontAwesome size={30} name={(menuButton || {icon: "bars"}).icon} color={bgColor} />
         </TouchableOpacity>
@@ -118,7 +120,7 @@ export function BigButton(props) {
       ) : null }
       <Text style={{
         color: fgColor,
-        fontSize: size
+        fontSize: size || 20
       }}>{ text }</Text>
     </TouchableOpacity>
   )
@@ -130,6 +132,7 @@ export function LoadingItem(props) {
     athletics: require("../lottie/athletics.json"),
     directory: require("../lottie/directory.json"),
     menu: require("../lottie/menu.json"),
+    namegame: require("../lottie/namegame.json"),
     schedule: require("../lottie/schedule.json")
   };
 
@@ -173,7 +176,7 @@ export function CheckboxSet({ labels,setSelected }) {
       }}>
         {
           labels.slice(i,i + 3).map((item,j) => (
-            <TouchableOpacity style={{
+            <TouchableOpacity key={j} style={{
               flex: 1,
               flexDirection: "row",
               width: "100%",
@@ -185,7 +188,7 @@ export function CheckboxSet({ labels,setSelected }) {
                 height: 22,
                 borderRadius: 5,
                 borderColor: fgColor,
-                backgroundColor: selected[i + j] ? fgColor : "white",
+                backgroundColor: selected[i + j] ? fgColor : bgColor,
                 borderWidth: 3,
                 marginRight: 10
               }} />
@@ -201,5 +204,5 @@ export function CheckboxSet({ labels,setSelected }) {
     <View>
       { rows }
     </View>
-  )
+  );
 }

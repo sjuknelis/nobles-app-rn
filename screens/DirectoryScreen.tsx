@@ -12,12 +12,13 @@ import { DirectoryScheduleScreen } from './DirectoryScheduleScreen';
 import { DateSelector } from '../components/DateSelector';
 import { getColors } from '../hooks/colorSchemeContext';
 
-export default function DirectoryScreen({ openMenu }) {
+export default function DirectoryScreen({ openMenu,isMenuOpen }) {
+  const {fgColor,bgColor} = getColors();
   const windowWidth = Dimensions.get("window").width;
 
   return (
     <SubscreenController openMenu={openMenu} subscreens={{
-      main: setSubscreen => (<MainSubscreen setSubscreen={setSubscreen} openMenu={openMenu} />),
+      main: (setSubscreen,options,carryState,setCarryState,isMenuOpen) => (<MainSubscreen setSubscreen={setSubscreen} openMenu={openMenu} isMenuOpen={isMenuOpen} />),
       results: (setSubscreen,options,carryState,setCarryState) => (<DirectoryResultsSubscreen setSubscreen={setSubscreen} openMenu={openMenu} options={options} carryState={carryState} setCarryState={setCarryState} />),
       card: (setSubscreen,options) => (<DirectoryCardSubscreen setSubscreen={setSubscreen} openMenu={openMenu} options={options} />),
       schedule: (setSubscreen,options,carryState,setCarryState) => (<DirectoryScheduleScreen setSubscreen={setSubscreen} options={options} carryState={carryState} />)
@@ -36,7 +37,7 @@ export default function DirectoryScreen({ openMenu }) {
       main: () => null,
       results: setSubscreen => (
         <TouchableOpacity style={[styles.row,{
-          backgroundColor: "white",
+          backgroundColor: bgColor,
           width: "50%",
           marginLeft: "25%",
           marginTop: 5,
@@ -46,7 +47,7 @@ export default function DirectoryScreen({ openMenu }) {
           alignItems: "center",
           justifyContent: "center"
         }]} onPress={() => setSubscreen("main")}>
-          <FontAwesome size={20} name="search" color={KEY_COLOR} style={{
+          <FontAwesome size={20} name="search" color={fgColor} style={{
             paddingRight: 10
           }} />
           <Text>Search Again</Text>
@@ -68,15 +69,15 @@ export default function DirectoryScreen({ openMenu }) {
     }} titles={{
       main: () => "DIRECTORY",
       results: () => "DIRECTORY",
-      card: () => "",
+      card: () => " ",
       schedule: options => `${options.name}'s Schedule`
     }} minUpperHeights={{
       card: windowWidth * .175
-    }} />
+    }} isMenuOpen={isMenuOpen} />
   );
 }
 
-function MainSubscreen({ openMenu,setSubscreen }) {
+function MainSubscreen({ openMenu,setSubscreen,isMenuOpen }) {
   const [firstName,setFirstName] = useState("");
   const [lastName,setLastName] = useState("");
   const [hometown,setHometown] = useState("");
@@ -86,11 +87,22 @@ function MainSubscreen({ openMenu,setSubscreen }) {
     .map(item => item.split(" "));
   const [officeNameIndex,setOfficeNameIndex] = useState(Math.floor(Math.random() * officeNames.length));
 
+  const firstNameInput = useRef(null);
+  const lastNameInput = useRef(null);
+  const hometownInput = useRef(null);
+  useEffect(() => {
+    if ( isMenuOpen ) {
+      firstNameInput.current.blur();
+      lastNameInput.current.blur();
+      hometownInput.current.blur();
+    }
+  },[isMenuOpen]);
+
   return (
     <View>
-      <InputEntry label="First name" placeholderIcon="user" placeholder={officeNames[officeNameIndex][0]} onChangeText={setFirstName} />
-      <InputEntry label="Last name" placeholderIcon="user" placeholder={officeNames[officeNameIndex][1]} onChangeText={setLastName} />
-      <InputEntry label="Hometown" placeholderIcon="building" placeholder="Scranton" onChangeText={setHometown} />
+      <InputEntry label="First name" placeholderIcon="user" placeholder={officeNames[officeNameIndex][0]} onChangeText={setFirstName} inputRef={firstNameInput} />
+      <InputEntry label="Last name" placeholderIcon="user" placeholder={officeNames[officeNameIndex][1]} onChangeText={setLastName} inputRef={lastNameInput} />
+      <InputEntry label="Hometown" placeholderIcon="building" placeholder="Scranton" onChangeText={setHometown} inputRef={hometownInput} />
       <View style={styles.row}>
         <View style={{
           flex: 1,

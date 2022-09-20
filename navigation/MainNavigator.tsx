@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useContext } from 'react';
-import { StyleSheet, TouchableOpacity, Animated, Dimensions, TouchableWithoutFeedback, Pressable, Image, Easing, LayoutAnimation, BackHandler } from 'react-native';
+import { StyleSheet, TouchableOpacity, Animated, Dimensions, TouchableWithoutFeedback, Pressable, Image, Easing, LayoutAnimation, BackHandler, ScrollView } from 'react-native';
 
 import { Text, View, KEY_COLOR } from '../components/Themed';
 import { FontAwesome } from '@expo/vector-icons';
@@ -52,7 +52,7 @@ export function MainNavigator({ setNavigator }) {
       title: "Athletics"
     },
     directory: {
-      screen: (<DirectoryScreen openMenu={() => setOpen(! open)} />),
+      screen: (<DirectoryScreen openMenu={() => setOpen(! open)} isMenuOpen={open} />),
       icon: "address-book",
       title: "Directory"
     },
@@ -63,7 +63,7 @@ export function MainNavigator({ setNavigator }) {
     },
     namegame: {
       screen: (<NameGameScreen openMenu={() => setOpen(! open)} />),
-      icon: "link",
+      icon: "gamepad",
       title: "Name Game"
     },
     settings: {
@@ -142,6 +142,9 @@ export function MainNavigator({ setNavigator }) {
   BackHandler.addEventListener("hardwareBackPress",() => {
     if ( ! open ) {
       setOpen(true);
+      return true;
+    } else if ( settingsOpen ) {
+      setSettingsOpen(false);
       return true;
     }
     BackHandler.exitApp();
@@ -234,12 +237,7 @@ function MainMenu({ screens,guestAccessible,screen,loadScreen,setSettingsOpen })
   const insets = useSafeAreaInsets();
 
   const [buttonLayouts,setButtonLayouts] = useState({
-    aboutme: {y: 0,height: 0},
-    schedule: {y: 0,height: 0},
-    reservations: {y: 0,height: 0},
-    menu: {y: 0,height: 0},
-    athletics: {y: 0,height: 0},
-    directory: {y: 0,height: 0}
+    menu: {y: 0,height: 0}
   });
   const updateButtonLayout = (key,layout) => {
     const buttonLayoutsCopy = Object.assign({},buttonLayouts);
@@ -286,6 +284,9 @@ function MainMenu({ screens,guestAccessible,screen,loadScreen,setSettingsOpen })
   
   const [userImage,setUserImage] = useState(require("../assets/images/guest.png"));
 
+  const [scrollOuterHeight,setScrollOuterHeight] = useState(0);
+  const [scrollInnerHeight,setScrollInnerHeight] = useState(0);
+
   return (
     <View>
       <View style={{
@@ -295,7 +296,9 @@ function MainMenu({ screens,guestAccessible,screen,loadScreen,setSettingsOpen })
         height: windowHeight - insets.top - insets.bottom,
         justifyContent: "space-between"
       }}>
-        <View>
+        <View style={{
+          flex: 1
+        }}>
           <View style={[styles.row,{
             paddingTop: 10,
             paddingBottom: 10,
@@ -327,18 +330,44 @@ function MainMenu({ screens,guestAccessible,screen,loadScreen,setSettingsOpen })
               }}>{ aboutData.grade && ! guest ? `${aboutData.grade}th Grade` : "" }</Text>
             </View>
           </View>
-          {
-            Object.keys(screens).filter(key => key != "settings").filter(key => ! guest || guestAccessible.indexOf(key) > -1).map(key => (
-              <ScreenButton
-                key={key}
-                icon={screens[key].icon}
-                text={screens[key].title}
-                selected={screen == key}
-                onPress={() => loadScreen(key)}
-                updateLayout={layout => updateButtonLayout(key,layout)}
-              />
-            ))
-          }
+          <ScrollView scrollEnabled={scrollInnerHeight > scrollOuterHeight} style={{
+            flex: 1
+          }} onLayout={event => {
+            const layout = event.nativeEvent.layout;
+            setScrollOuterHeight(layout.height);
+          }}>
+            <View onLayout={event => {
+              const layout = event.nativeEvent.layout;
+              setScrollInnerHeight(layout.height);
+            }}>
+              {
+                Object.keys(screens).filter(key => key != "settings").filter(key => ! guest || guestAccessible.indexOf(key) > -1).map(key => (
+                  <ScreenButton
+                    key={key}
+                    icon={screens[key].icon}
+                    text={screens[key].title}
+                    selected={screen == key}
+                    onPress={() => loadScreen(key)}
+                    updateLayout={layout => updateButtonLayout(key,layout)}
+                  />
+                ))
+              }
+            </View>
+            <Animated.View style={{
+              position: "absolute",
+              top: buttonLayouts.menu.y,
+              left: 0,
+              width: windowWidth * .6,
+              height: buttonLayouts.menu.height,
+              backgroundColor: bgColor,
+              borderTopRightRadius: 100,
+              borderBottomRightRadius: 100,
+              zIndex: -1,
+              transform: [
+                {translateY: slideAnim}
+              ]
+            }}></Animated.View>
+          </ScrollView>
         </View>
         <View style={{
           marginLeft: 10,
@@ -368,20 +397,6 @@ function MainMenu({ screens,guestAccessible,screen,loadScreen,setSettingsOpen })
           }}>Stable Version 0.9-RN</Text>
         </View>
       </View>
-      <Animated.View style={{
-        position: "absolute",
-        top: buttonLayouts.menu.y,
-        left: 0,
-        width: windowWidth * .6,
-        height: buttonLayouts.menu.height,
-        backgroundColor: bgColor,
-        borderTopRightRadius: 100,
-        borderBottomRightRadius: 100,
-        zIndex: -1,
-        transform: [
-          {translateY: slideAnim}
-        ]
-      }}></Animated.View>
     </View>
   );
 }

@@ -14,92 +14,12 @@ export function ScheduleList({ selectedDay,providedPNO }) {
     const fetchScheduleData = async () => {
       const creds = await getCreds();
       const qs = `?iosPIN=${creds.pin}&PeopleID=${providedPNO || creds.pno}`;
-      const data = await requestAPI(`xmlschedule.php${qs}`);
+      let data = await requestAPI(`xmlschedule.php${qs}`,true);
       if ( data == "error" ) {
         setErrorResponse(true);
         return;
       }
-
-      data = data.Schedule.Day;
-      for ( let i = 0; i < 5; i++ ) {
-        data[i].Course[0].StartTime = i + ":00";
-      }
-      /*const data = [
-        {
-          Course: [
-            {
-              Description: ["Class 1"],
-              StartTime: ["8:00"],
-              EndTime: ["9:00 AM"],
-              Location: ["Room 4"],
-            },{
-              Description: ["Class 2"],
-              StartTime: ["8:00"],
-              EndTime: ["9:00 AM"],
-              Location: ["Room 4"],
-            }
-          ]
-        },
-        {
-          Course: [
-            {
-              Description: ["Class 3"],
-              StartTime: ["8:00"],
-              EndTime: ["9:00 AM"],
-              Location: ["Room 4"],
-            },{
-              Description: ["Class 4"],
-              StartTime: ["8:00"],
-              EndTime: ["9:00 AM"],
-              Location: ["Room 4"],
-            }
-          ]
-        },{
-          Course: [
-            {
-              Description: ["Class 1"],
-              StartTime: ["8:00"],
-              EndTime: ["9:00 AM"],
-              Location: ["Room 4"],
-            },{
-              Description: ["Class 2"],
-              StartTime: ["8:00"],
-              EndTime: ["9:00 AM"],
-              Location: ["Room 4"],
-            }
-          ]
-        },
-        {
-          Course: [
-            {
-              Description: ["Class 3"],
-              StartTime: ["8:00"],
-              EndTime: ["9:00 AM"],
-              Location: ["Room 4"],
-            },{
-              Description: ["Class 4"],
-              StartTime: ["8:00"],
-              EndTime: ["9:00 AM"],
-              Location: ["Room 4"],
-            }
-          ]
-        },{
-          Course: [
-            {
-              Description: ["Class 1"],
-              StartTime: ["8:00"],
-              EndTime: ["9:00 AM"],
-              Location: ["Room 4"],
-            },{
-              Description: ["Class 2"],
-              StartTime: ["8:00"],
-              EndTime: ["9:00 AM"],
-              Location: ["Room 4"],
-            }
-          ]
-        }
-      ]*/
-      setScheduleData(data);
+      setScheduleData(data.getElementsByTagName("Day"));
     }
 
     fetchScheduleData()
@@ -109,7 +29,7 @@ export function ScheduleList({ selectedDay,providedPNO }) {
   if ( scheduleData ) {
     return (
       <FlatList
-        data={scheduleData[selectedDay].Course}
+        data={scheduleData[selectedDay].getElementsByTagName("Course")}
         renderItem={ScheduleItem}
         keyExtractor={item => JSON.stringify(item)}
       />
@@ -145,22 +65,77 @@ export function ScheduleList({ selectedDay,providedPNO }) {
 
 function ScheduleItem({ item }) {
   return (
-    <View style={{ padding: 5 }}>
+    <View style={{
+      padding: 5
+    }}>
       <View style={styles.row}>
-        <View style={{ flex: 1, borderColor: "black", borderRightWidth: 2, marginRight: 10 }}>
-          <Text style={[styles.infoText,{ padding: 2 }]}>{ item.StartTime[0] } { timePost(item.StartTime[0]) }</Text>
+        <View style={{
+          flex: 1,
+          borderColor: "gray",
+          borderRightWidth: 2,
+          marginRight: 10,
+          marginBottom: -5
+        }}>
+          <Text style={[styles.infoText,styles.shrunk,{
+            padding: 2
+          }]}>
+            { item.getElementsByTagName("StartTime")[0].value } { timePost(item.getElementsByTagName("StartTime")[0].value) }
+          </Text>
         </View>
-        <Text style={[styles.infoText,{ fontFamily: "Nunito_700Bold", flex: 3, padding: 2 }]}>{ item.Description[0] }</Text>
+        <Text style={[styles.infoText,{
+          fontFamily: "Nunito_700Bold",
+          flex: 3,
+          padding: 2
+        }]} adjustFontSizeToFit={true} numberOfLines={1}>
+          { item.getElementsByTagName("Description")[0].value }
+        </Text>
       </View>
       <View style={styles.row}>
-        <View style={{ flex: 1, borderColor: "black", borderRightWidth: 2, marginRight: 10 }}>
-          <Text style={[styles.infoText,{ padding: 2 }]}>{ item.EndTime[0].slice(0,-3) } { timePost(item.EndTime[0]) }</Text>
+        <View style={{
+          flex: 1,
+          borderColor: "gray",
+          borderRightWidth: 2,
+          marginRight: 10
+        }}>
+          <Text style={[styles.infoText,styles.shrunk,{
+            padding: 2
+          }]}>
+            { item.getElementsByTagName("EndTime")[0].value.slice(0,-3) } { timePost(item.getElementsByTagName("EndTime")[0].value) }
+          </Text>
         </View>
-        <View style={[styles.row,{ flex: 3, padding: 2 }]}>
-          <FontAwesome size={15} style={{ marginRight: 5 }} name="location-arrow" color="black" />
-          <Text style={styles.infoText}>{ item.Location[0] }</Text>
+        <View style={[styles.row,{
+          flex: 3,
+          padding: 2
+        }]}>
+          <FontAwesome name="location-arrow" color="gray" size={10} style={{
+            marginRight: 5
+          }} />
+          <Text style={[styles.infoText,styles.shrunk]}>{ item.getElementsByTagName("Location")[0].value }</Text>
         </View>
       </View>
+      { item.getElementsByTagName("Teacher")[0].value ? (
+        <View style={styles.row}>
+          <View style={{
+            flex: 1,
+            borderColor: "gray",
+            borderRightWidth: 2,
+            marginRight: 10
+          }}>
+            <Text style={[styles.infoText,{
+              padding: 2
+            }]}> </Text>
+          </View>
+          <View style={[styles.row,{
+            flex: 3,
+            padding: 2
+          }]}>
+            <FontAwesome name="user" color="gray" size={12} style={{
+              marginRight: 5
+            }} />
+            <Text style={[styles.infoText,styles.shrunk]}>{ item.getElementsByTagName("Teacher")[0].value }</Text>
+          </View>
+        </View>
+      ) : null }
     </View>
   );
 }
@@ -181,5 +156,9 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_400Regular",
     color: "black",
     fontSize: 18
+  },
+  shrunk: {
+    color: "gray",
+    fontSize: 15
   }
 });

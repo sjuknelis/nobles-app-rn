@@ -3,7 +3,7 @@ import { StyleSheet, TouchableOpacity, Animated, LayoutAnimation } from 'react-n
 
 import { Text, View, Container, KEY_COLOR } from '../components/Themed';
 
-export function SubscreenController({ useManualFade,openMenu,subscreens,titles,menuButton,upperChildren,minUpperHeights,defaultCarryState,backMovements }) {
+export function SubscreenController({ useManualFade,openMenu,subscreens,titles,menuButton,upperChildren,minUpperHeights,defaultCarryState,backMovements,isMenuOpen }) {
   const [active,setActiveInternal] = useState("main");
 
   const [fadingOut,setFadingOut] = useState(false);
@@ -33,13 +33,13 @@ export function SubscreenController({ useManualFade,openMenu,subscreens,titles,m
 
   const setActive = (newSubscreen,optionsParam) => {
     if ( useManualFade ) setFadingOut(true);
-    else LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setTimeout(() => {
       if ( optionsParam ) {
         const optionsCopy = Object.assign({},options);
         optionsCopy[newSubscreen] = optionsParam;
         setOptions(optionsCopy);
       }
+      if ( ! useManualFade ) LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setActiveInternal(newSubscreen);
       if ( useManualFade ) setFadingOut(false);
     },250);
@@ -62,7 +62,7 @@ export function SubscreenController({ useManualFade,openMenu,subscreens,titles,m
           width: "100%",
           opacity: fadeAnim
         }}>
-          { subscreens[active](setActive,options[active],carryStateActive,setCarryStateActive) }
+          { subscreens[active](setActive,options[active],carryStateActive,setCarryStateActive,isMenuOpen) }
         </Animated.View>
       </Container>
     </View>

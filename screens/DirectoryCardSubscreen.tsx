@@ -40,7 +40,7 @@ export function DirectoryCardSubscreen({ setSubscreen,options }) {
     }} onLayout={event => {
       const layout = event.nativeEvent.layout;
       setBodyHeight(layout.height);
-    }} pointerEvents={"none"}>
+    }}>
       <View style={{
         paddingLeft: 10,
         paddingRight: 10
@@ -80,7 +80,6 @@ export function DirectoryCardSubscreen({ setSubscreen,options }) {
             color: semiShade
           }}>{ options.getElementsByTagName("StudentGrade")[0].value ? `Grade ${options.getElementsByTagName("StudentGrade")[0].value}` : "Faculty" }</Text>
         </View>
-        
         <InfoEntry
           text={`Email: ${options.getElementsByTagName("EmailAddress")[0].value}`}
           buttons={[

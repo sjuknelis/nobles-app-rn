@@ -5,7 +5,9 @@ import { ScheduleList } from '../components/ScheduleList';
 import { DateSelector } from '../components/DateSelector';
 
 export default function ScheduleScreen({ openMenu }) {
-  const [selectedDay,setSelectedDay] = useState(0);
+  let dayOfWeek = new Date().getDay();
+  if ( dayOfWeek == 0 || dayOfWeek == 6 ) dayOfWeek = 1;
+  const [selectedDay,setSelectedDay] = useState(dayOfWeek - 1);
 
   return (
     <Container title="SCHEDULE" menuButton={{
