@@ -18,10 +18,13 @@ import { getColors } from '../hooks/colorSchemeContext';
 import { FlyingAnimContext } from '../hooks/flyingAnimContext';
 import { getWindowHeight } from '../hooks/windowHeight';
 import NameGameScreen from '../screens/NameGameScreen';
+import { LockMenuContext } from '../hooks/lockMenuContext';
 
 export function MainNavigator({ setNavigator }) {
+  const [lockMenu,setLockMenu] = useContext(LockMenuContext);
   const [open,setOpenInternal] = useState(true);
   const setOpen = value => {
+    if ( lockMenu ) return;
     setOpenInternal(value);
   };
   const [screen,setScreen] = useState("menu");
@@ -352,6 +355,9 @@ function MainMenu({ screens,guestAccessible,screen,loadScreen,setSettingsOpen })
                   />
                 ))
               }
+              <View style={{
+                height: 10
+              }} />
             </View>
             <Animated.View style={{
               position: "absolute",
@@ -394,7 +400,7 @@ function MainMenu({ screens,guestAccessible,screen,loadScreen,setSettingsOpen })
             color: semiShade == "lightgray" ? "black" : "lightgray",
             opacity: .5,
             fontSize: 16
-          }}>Stable Version 0.9-RN</Text>
+          }}>Stable Version 1.0-RN</Text>
         </View>
       </View>
     </View>

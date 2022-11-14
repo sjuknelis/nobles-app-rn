@@ -19,6 +19,7 @@ import { getCreds } from './hooks/requestAPI';
 import { ColorSchemeContext, getInitColorScheme, SCHEMES } from './hooks/colorSchemeContext';
 import { Platform, UIManager } from 'react-native';
 import { FirebaseContext, setupFirebase } from './hooks/firebaseContext';
+import { LockMenuContext } from './hooks/lockMenuContext';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -68,6 +69,7 @@ export default function App() {
       dest: {px: 0,py: 0}
     }
   });
+  const [lockMenu,setLockMenu] = useState(false);
 
   let [fontsLoaded] = useFonts({
     EBGaramond_400Regular,
@@ -85,16 +87,18 @@ export default function App() {
       <ModalContext.Provider value={[modalData,setModalData]}>
         <FirebaseContext.Provider value={[firebaseData,setFirebaseData]}>
           <FlyingAnimContext.Provider value={[flyingAnimData,setFlyingAnimData]}>
-            <SafeAreaProvider style={{
-              backgroundColor: bgColor
-            }}>
-              <SafeAreaView>
-                { navigators[navigatorInUse] || null }
-              </SafeAreaView>
-              { true ? (<AboutMeFlyingAnimController />) : null }
-              <ModalController />
-            </SafeAreaProvider>
-            <StatusBar style={navigatorInUse == "main" ? ["light","dark"][colorScheme] : "dark"} backgroundColor={bgColor} />
+            <LockMenuContext.Provider value={[lockMenu,setLockMenu]}>
+              <SafeAreaProvider style={{
+                backgroundColor: bgColor
+              }}>
+                <SafeAreaView>
+                  { navigators[navigatorInUse] || null }
+                </SafeAreaView>
+                { true ? (<AboutMeFlyingAnimController />) : null }
+                <ModalController />
+              </SafeAreaProvider>
+              <StatusBar style={navigatorInUse == "main" ? (SCHEMES[colorScheme][1] == "white" ? "light" : "dark") : "dark"} backgroundColor={bgColor} />
+            </LockMenuContext.Provider>
           </FlyingAnimContext.Provider>
         </FirebaseContext.Provider>
       </ModalContext.Provider>

@@ -61,10 +61,15 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
       }
 
       const data = await requestAPI("aboutme.php");
-      let lname = data.UNID.slice(1,-2);
-      lname = lname.charAt(0).toUpperCase() + lname.slice(1);
       let grade = 35 - parseInt(data.UNID.slice(-2));
       if ( ! (grade >= 9 && grade <= 12) ) grade = 0;
+
+      const {pin} = await getCreds();
+      const directoryURI = `xmlDirectory.php?iosPIN=${pin}&FirstName=${data.FirstName}&LastName=${data.UNID.slice(1,-2)}&Grade=${grade}`;
+      let directoryData;
+      if ( grade != 0 ) directoryData = await requestAPI(directoryURI + "&PersonType=Student",true);
+      else directoryData = await requestAPI(directoryURI + "&PersonType=Faculty",true);
+      const lname = directoryData.children[0].getElementsByTagName("Last")[0].value;
 
       data.lname = lname;
       data.nameText = `${data.FirstName} ${lname}`;
@@ -84,7 +89,8 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
 
   const [userImage,setUserImage] = useState(require("../assets/images/guest.png"));
 
-  const [barcodeOpen,setBarcodeOpenInternal] = useState(false);
+  const [barcodeOpen,setBarcodeOpen] = useState(false);
+  /*const [barcodeOpen,setBarcodeOpenInternal] = useState(false);
   const [barcodeHeight,setBarcodeHeight] = useState(0);
   const setBarcodeOpen = value => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -96,7 +102,7 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
       setBarcodeHeight(barcodeHeightVal);
       if ( barcodeHeightVal <= 0 || barcodeHeightVal >= 100 ) clearInterval(interval);
     })
-  };
+  };*/
 
   const simulatedLabel = useRef();
   useEffect(() => {
@@ -160,7 +166,8 @@ function MainSubscreen({ setSubscreen,carryState,setCarryState }) {
           <Animated.View style={[styles.row,{
             padding: 0,
             justifyContent: "center",
-            height: barcodeHeight,
+            //height: barcodeHeight,
+            display: barcodeOpen ? null : "none",
             overflow: "hidden"
           }]}>
             <Barcode

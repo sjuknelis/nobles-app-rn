@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue, set as dSet } from 'firebase/database';
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { getCreds, requestAPI } from './requestAPI';
 
 export const FirebaseContext = React.createContext();
@@ -53,16 +53,26 @@ export async function setupFirebase(data,setData) {
     })
     .catch(error => {
       console.error(error);
+      if ( error.message == "Firebase: Error (auth/user-not-found)." ) {
+        createUserWithEmailAndPassword(auth,email,pin.toLowerCase())
+          .then(credential => {
+            let copy = Object.assign({},data);
+            copy.uid = credential.user.uid;
+            setData(copy);
+            console.error("created user",copy.uid);
+          })
+          .catch(error => {
+            console.error(error);
+          });
+      }
     });
 }
 
 export async function setLeaderboardScore(firebaseData,selectedGrade,aboutData,score,updateScore) {
   if ( updateScore ) {
-    let lname = aboutData.UNID.slice(1,-2);
-    lname = lname.charAt(0).toUpperCase() + lname.slice(1);
-    dSet(ref(db,`leaderboards/${selectedGrade || "main"}/${firebaseData.uid}`),{
+    dSet(ref(db,`leaderboards/${selectedGrade ? selectedGrade + 7 : "main"}/${firebaseData.uid}`),{
       i: aboutData.PeopleID,
-      n: `${aboutData.FirstName} ${lname}`,
+      n: `${aboutData.FirstName} ${aboutData.lname}`,
       s: score
     });
   }

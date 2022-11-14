@@ -137,6 +137,7 @@ export function DirectoryCardSubscreen({ setSubscreen,options }) {
             {
               "icon": "location-arrow",
               "action": async () => {
+                await Location.requestPermissionsAsync();
                 const locationData = await Location.geocodeAsync(address);
                 if ( locationData.length > 0 ) {
                   const label = `${options.getElementsByTagName("First")[0].value}'s Address`;

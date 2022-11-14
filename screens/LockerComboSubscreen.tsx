@@ -9,13 +9,16 @@ import { getColors } from '../hooks/colorSchemeContext';
 
 export default function LockerComboSubscreen({ setSubscreen }) {
   const {fgColor,bgColor} = getColors();
-  const [comboText,setComboText] = useState("");
-  const [unlocked,setUnlocked] = useState(false);
+  const [macText,setMACText] = useState("");
+  const [shattuckText,setShattuckText] = useState("");
+  const [msText,setMSText] = useState("");
 
   useEffect(() => {
     const fetchAboutData = async () => {
       let data = await requestAPI("aboutme.php");
-      setComboText(`#${data.MACLockerNumber}\n${data.MACLockerCombo}`);
+      setMACText(`#${data.MACLockerNumber}\n${data.MACLockerCombo}`);
+      if ( ! isNaN(parseInt(data.SchoolHouseLockerNumber)) && parseInt(data.SchoolHouseLockerNumber) != 0 ) setShattuckText(`#${data.SchoolHouseLockerNumber}\n${data.SchoolHouseLockerCombo}`);
+      if ( ! isNaN(parseInt(data.MSCubbyNo)) && parseInt(data.MSCubbyNo) != 0 ) setMSText(`#${data.MSCubbyNo}\n${data.MSCubbyCombo}`);
     }
 
     fetchAboutData()
@@ -53,29 +56,39 @@ export default function LockerComboSubscreen({ setSubscreen }) {
           alignItems: "center",
           justifyContent: "center"
         }}>
-          <TouchableOpacity onPress={() => setUnlocked(! unlocked)}>
-            <FontAwesome size={300} name="lock" color="gold" />
-            <View style={{
-              position: "absolute",
-              top: 40,
-              left: 0,
-              width: "50%",
-              height: "100%",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "transparent"
-            }}>
-              <Text style={{
-                fontSize: 22,
-                fontFamily: "Nunito_700Bold",
-                color: "black",
-                textAlign: "center"
-              }}>{ unlocked ? comboText : "Tap for\nMAC locker" }</Text>
-            </View>
-          </TouchableOpacity>
+          <Lock label={"Tap for\nMAC locker"} hidden={macText} />
+          <Lock label={"Tap for\nShattuck locker"} hidden={shattuckText} />
+          <Lock label={"Tap for\nMS cubby"} hidden={msText} />
         </View>
       </View>
     </View>
+  );
+}
+
+function Lock({ label,hidden }) {
+  const [unlocked,setUnlocked] = useState(false);
+  if ( hidden == "" ) return null;
+  return (
+    <TouchableOpacity onPress={() => setUnlocked(! unlocked)}>
+      <FontAwesome size={300} name="lock" color="gold" />
+      <View style={{
+        position: "absolute",
+        top: 40,
+        left: 0,
+        width: 193,
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "transparent"
+      }}>
+        <Text style={{
+          fontSize: 22,
+          fontFamily: "Nunito_700Bold",
+          color: "black",
+          textAlign: "center"
+        }}>{ unlocked ? hidden : label }</Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 

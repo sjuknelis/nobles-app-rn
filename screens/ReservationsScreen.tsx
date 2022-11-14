@@ -58,7 +58,8 @@ export default function ReservationsScreen({ openMenu }) {
       await fetch(`https://nobilis.nobles.edu/iosnoblesappweb/canceldinner.php?username=sjuknelis24&date=${date}&mealtype=${meal}`);
     }
     fetchReservationData();
-  }
+  };
+  if ( reservations != null ) console.log(reservations.length);
 
   return (
     <Container title="RESERVATIONS" menuButton={{
@@ -104,14 +105,17 @@ export default function ReservationsScreen({ openMenu }) {
     )}>
       { ! reservations ? (
         <LoadingItem anim="menu" />
-      ) : (reservations.length <= 0 ? (
-        <Text style={{
-          marginTop: "75%",
-          marginBottom: "75%",
-          fontSize: 30,
-          fontFamily: "EBGaramond_700Bold",
-          textAlign: "center"
-        }}>No Reservations</Text>
+      ) : (reservations.length == 0 ? (
+        <View style={{
+          flex: 1,
+          justifyContent: "center"
+        }}>
+          <Text style={{
+            fontSize: 30,
+            fontFamily: "EBGaramond_700Bold",
+            textAlign: "center",
+          }}>No Reservations</Text>
+        </View>
       ) : (
         <FlatList
           data={reservations}

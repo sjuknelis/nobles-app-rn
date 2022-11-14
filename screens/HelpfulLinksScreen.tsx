@@ -1,6 +1,6 @@
 import { FontAwesome } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Linking, SectionList, StyleSheet, TouchableOpacity } from 'react-native';
+import { Linking, ScrollView, SectionList, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { View, Container, KEY_COLOR, Text } from '../components/Themed';
 import { getColors } from '../hooks/colorSchemeContext';
@@ -71,14 +71,16 @@ export default function HelpfulLinksScreen({ openMenu }) {
       icon: "bars",
       action: openMenu
     }}>
-      <SectionList
-        sections={items}
-        keyExtractor={item => JSON.stringify(item)}
-        renderItem={LinkItem}
-        renderSectionHeader={HeaderItem}
-        renderSectionFooter={() => (<View style={{paddingBottom: 10}} />)}
-        scrollEnabled={false}
-      />
+      <ScrollView>
+        <SectionList
+          sections={items}
+          keyExtractor={item => JSON.stringify(item)}
+          renderItem={LinkItem}
+          renderSectionHeader={HeaderItem}
+          renderSectionFooter={() => (<View style={{paddingBottom: 10}} />)}
+          scrollEnabled={false}
+        />
+      </ScrollView>
     </Container>
   );
 }

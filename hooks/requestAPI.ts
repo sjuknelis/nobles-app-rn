@@ -89,4 +89,9 @@ export async function logOut() {
   await AsyncStorage.setItem("@colorscheme",JSON.stringify({
     scheme: 0
   }));
+  await AsyncStorage.setItem("@gamestats",JSON.stringify({
+    highscore: 0,
+    highscoreGrade: 0,
+    games: 0
+  }));
 }

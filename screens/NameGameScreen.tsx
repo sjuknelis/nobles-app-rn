@@ -13,8 +13,11 @@ import { EndingView, FlyingView, InGameView } from "./MenuGameInnerViews";
 
 import "../hooks/firebaseContext";
 import { FirebaseContext, setLeaderboardScore } from "../hooks/firebaseContext";
+import { LockMenuContext } from "../hooks/lockMenuContext";
 
 export default function NameGameScreen({ openMenu }) {
+  const windowHeight = getWindowHeight();
+
   const [stats,setStats] = useState({});
   const [statsLoaded,setStatsLoaded] = useState(false);
   useEffect(() => {
@@ -26,7 +29,7 @@ export default function NameGameScreen({ openMenu }) {
         console.error(err);
         return;
       }
-      if ( jsonValue && false ) {
+      if ( jsonValue ) {
         setStats(JSON.parse(jsonValue));
       } else {
         const noDataObj = {
@@ -64,9 +67,18 @@ export default function NameGameScreen({ openMenu }) {
   useEffect(() => {
     const fetchAboutData = async () => {
       const data = await requestAPI("aboutme.php");
-      setAboutData(data);
       let gradeVal = 35 - parseInt(data.UNID.slice(-2));
       if ( ! (gradeVal >= 9 && gradeVal <= 12) ) gradeVal = 0;
+
+      const {pin} = await getCreds();
+      const directoryURI = `xmlDirectory.php?iosPIN=${pin}&FirstName=${data.FirstName}&LastName=${data.UNID.slice(1,-2)}&Grade=${gradeVal}`;
+      let directoryData;
+      if ( gradeVal != 0 ) directoryData = await requestAPI(directoryURI + "&PersonType=Student",true);
+      else directoryData = await requestAPI(directoryURI + "&PersonType=Faculty",true);
+      const lname = directoryData.children[0].getElementsByTagName("Last")[0].value;
+      data.lname = lname;
+
+      setAboutData(data);
       setGrade(gradeVal);
     };
 
@@ -78,11 +90,14 @@ export default function NameGameScreen({ openMenu }) {
   const [learnMode,setLearnMode] = useState(false);
   const [selectedGrade,setSelectedGrade] = useState(0);
 
+  const [lockMenu,setLockMenu] = useContext(LockMenuContext);
   const [inGame,setInGameInternal] = useState(false);
   const setInGame = value => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setInGameInternal(value);
     if ( ! value ) setIDs([]);
+    setLockMenu(value);
+    setInLeaderboardInternal(false);
   }
   const [firebaseData,setFirebaseData] = useContext(FirebaseContext);
   const [menu,setMenu] = useState(1);
@@ -92,6 +107,7 @@ export default function NameGameScreen({ openMenu }) {
     setGameViewInternal(value);
     if ( value == "flying" && ! learnMode ) {
       const statsCopy = Object.assign({},stats);
+      console.log(selectedGrade,updateScore,score,statsCopy);
       statsCopy.games++;
       let updateScore = false;
       if ( selectedGrade == 0 ) {
@@ -105,10 +121,12 @@ export default function NameGameScreen({ openMenu }) {
           updateScore = true;
         }
       }
+      console.log(selectedGrade,updateScore,score,statsCopy);
       setLeaderboardScore(firebaseData,selectedGrade,aboutData,score,updateScore);
       setStats(statsCopy);
 
       const storeStats = async () => {
+        console.error(JSON.stringify(statsCopy));
         await AsyncStorage.setItem("@gamestats",JSON.stringify(statsCopy));
       };
       storeStats()
@@ -125,7 +143,7 @@ export default function NameGameScreen({ openMenu }) {
   const [leaderboardPath,setLeaderboardPath] = useState("");
   const currentLeaderboard = Object.values(firebaseData.data[leaderboardPath] || {})
     .sort((a,b) => b.s - a.s)
-    .slice(0,100);
+    .slice(0,99);
   const [inLeaderboard,setInLeaderboardInternal] = useState(false);
   const setInLeaderboard = value => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -169,8 +187,8 @@ export default function NameGameScreen({ openMenu }) {
           padding: 5
         }}>
           <Text style={[styles.nunitoBold,styles.small,nunitoColor]}>Stats</Text>
-          <Text style={[styles.nunito,styles.small,nunitoColor]}>My high score: { hasSchoolScore ? firebaseData.data["leaderboards/main"][firebaseData.uid].s : 0 }</Text>
-          <Text style={[styles.nunito,styles.small,nunitoColor]}>My high score (grade): { hasGradeScore ? firebaseData.data[`leaderboards/${grade}`][firebaseData.uid].s : 0 }</Text>
+          <Text style={[styles.nunito,styles.small,nunitoColor]}>My high score: { stats.highscore != 0 ? stats.highscore : (hasSchoolScore ? firebaseData.data["leaderboards/main"][firebaseData.uid].s : 0) }</Text>
+          <Text style={[styles.nunito,styles.small,nunitoColor]}>My high score (grade): { stats.highscoreGrade != 0 ? stats.highscoreGrade : (hasGradeScore ? firebaseData.data[`leaderboards/${grade}`][firebaseData.uid].s : 0) }</Text>
           <Text style={[styles.nunito,styles.small,nunitoColor]}>My games played: { stats.games || 0 }</Text>
           <Text style={[styles.nunito,styles.small,nunitoColor]}>Schoolwide correct guesses: { firebaseData.data.global.total_score }</Text>
           <Text style={[styles.nunito,styles.small,nunitoColor]}>Schoolwide games played: { firebaseData.data.global.games_played }</Text>
@@ -276,7 +294,8 @@ export default function NameGameScreen({ openMenu }) {
 
   return (
     <View style={{
-      backgroundColor: "white"
+      backgroundColor: inGame ? "white" : "transparent",
+      height: windowHeight
     }}>
       {
         inGame ? gameViews[gameView] : (

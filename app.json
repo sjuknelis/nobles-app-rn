@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Noble",
+    "name": "Nobles",
     "slug": "Noble",
-    "version": "1.0.0",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -27,7 +27,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.simas06.Noble"
+      "package": "com.simas06.Noble",
+      "versionCode": 5
     },
     "web": {
       "favicon": "./assets/images/favicon.png"

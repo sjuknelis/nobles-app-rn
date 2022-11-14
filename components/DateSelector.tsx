@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
-import { StyleSheet, TouchableOpacity, Animated, Dimensions, Pressable, Easing } from 'react-native';
+import { StyleSheet, TouchableOpacity, Animated, Dimensions, Pressable, Easing, AppState } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 
 import { Text, View, KEY_COLOR } from './Themed';
@@ -53,6 +53,16 @@ export const DateSelector = forwardRef((props,ref) => {
       }
     ).start();
   },[dotAnim,selected]);
+
+  const [rerenderVal,setRerenderVal] = useState(null);
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change",nextAppState => {
+      setRerenderVal(nextAppState);
+    });
+    return () => {
+      subscription.remove();
+    };
+  },[]);
 
   const [touchFade,setTouchFade] = useState(0);
 

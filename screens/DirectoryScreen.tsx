@@ -16,6 +16,9 @@ export default function DirectoryScreen({ openMenu,isMenuOpen }) {
   const {fgColor,bgColor} = getColors();
   const windowWidth = Dimensions.get("window").width;
 
+  let dayOfWeek = new Date().getDay();
+  if ( dayOfWeek == 0 || dayOfWeek == 6 ) dayOfWeek = 1;
+
   return (
     <SubscreenController openMenu={openMenu} subscreens={{
       main: (setSubscreen,options,carryState,setCarryState,isMenuOpen) => (<MainSubscreen setSubscreen={setSubscreen} openMenu={openMenu} isMenuOpen={isMenuOpen} />),
@@ -65,7 +68,7 @@ export default function DirectoryScreen({ openMenu,isMenuOpen }) {
       main: null,
       results: null,
       card: null,
-      schedule: 0
+      schedule: dayOfWeek
     }} titles={{
       main: () => "DIRECTORY",
       results: () => "DIRECTORY",
